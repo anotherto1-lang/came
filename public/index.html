@@ -215,7 +215,7 @@
         if (track.kind === 'video') {
           const parameters = sender.getParameters();
           if (!parameters.encodings) parameters.encodings = [{}];
-          parameters.encodings[0].maxBitrate = 8000000;
+          parameters.encodings[0].maxBitrate = 30000000;
           sender.setParameters(parameters).catch(e => console.error(e));
         }
       });
