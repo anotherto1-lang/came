@@ -26,21 +26,21 @@
       <h1 class="font-bold text-white tracking-wide">ShareChat Web</h1>
     </div>
     
+    <!-- PAINEL DE CONTROLE DE QUALIDADE -->
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
-        
         <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option class="bg-[#2b2d31] text-white" value="720">720p (Leve)</option>
+          <option class="bg-[#2b2d31] text-white" value="360">360p (Internet Fraca)</option>
+          <option class="bg-[#2b2d31] text-white" value="480">480p (Leve)</option>
+          <option class="bg-[#2b2d31] text-white" value="720">720p (Bom)</option>
           <option class="bg-[#2b2d31] text-white" value="1080" selected>1080p (Padrão)</option>
-          <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K)</option>
-          <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K)</option>
+          <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K - 15 Mbps)</option>
+          <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K - 30 Mbps)</option>
         </select>
-        
         <span class="text-[#4e5058]">|</span>
-        
         <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option class="bg-[#2b2d31] text-white" value="30">30 FPS</option>
-          <option class="bg-[#2b2d31] text-white" value="60" selected>60 FPS</option>
+          <option class="bg-[#2b2d31] text-white" value="30">30 FPS (Mais Estável)</option>
+          <option class="bg-[#2b2d31] text-white" value="60" selected>60 FPS (Fluido)</option>
         </select>
       </div>
 
@@ -52,8 +52,11 @@
 
   <!-- CORPO PRINCIPAL -->
   <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    
+    <!-- LADO ESQUERDO: VÍDEOS -->
     <div class="flex-1 bg-[#111214] p-4 flex flex-col items-center justify-center overflow-y-auto relative">
-      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr"></div>
+      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr">
+      </div>
       <div id="no-stream" class="absolute flex flex-col items-center text-[#949ba4]">
         <svg class="w-16 h-16 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
         <p class="font-medium">Nenhuma tela compartilhada</p>
@@ -61,6 +64,7 @@
       </div>
     </div>
 
+    <!-- LADO DIREITO: PARTICIPANTES E CHAT -->
     <div class="w-full md:w-80 bg-[#2b2d31] border-l border-[#1f2023] flex flex-col h-1/2 md:h-full shrink-0">
       <div class="p-4 border-b border-[#1f2023]">
         <div class="flex justify-between items-center mb-2">
@@ -87,6 +91,7 @@
     
     let username = "";
     let localStream = null;
+    let taxaDeBitsIdeal = 8000000; 
     const peers = {};
 
     const loginModal = document.getElementById('login-modal');
@@ -147,11 +152,8 @@
       });
     });
 
-    // CORREÇÃO: SE ALGUÉM ENTRAR E EU ESTIVER STREAMANDO, EU MANDO A TELA PRA ELE!
     socket.on('new-user', (newUserId) => {
-      if (localStream) {
-        socket.emit('notify-already-sharing', newUserId);
-      }
+      if (localStream) socket.emit('notify-already-sharing', newUserId);
     });
 
     shareBtn.addEventListener('click', async () => {
@@ -161,10 +163,20 @@
           const height = parseInt(qualitySelect.value);
           const width = Math.round((height * 16) / 9); 
 
+          // SISTEMA INTELIGENTE DE BITRATE (Ajustado para 15 Mbps em 2K e 30 Mbps em 4K)
+          if (height <= 360) taxaDeBitsIdeal = 1000000;       // 1 Mbps (360p)
+          else if (height <= 480) taxaDeBitsIdeal = 2000000;  // 2 Mbps (480p)
+          else if (height <= 720) taxaDeBitsIdeal = 4000000;  // 4 Mbps (720p)
+          else if (height <= 1080) taxaDeBitsIdeal = 9000000; // 8 Mbps (1080p)
+          else if (height <= 1440) taxaDeBitsIdeal = 15000000;// 15 Mbps (2K)
+          else taxaDeBitsIdeal = 30000000;                    // 30 Mbps (4K)
+
+          // Se a qualidade for 4K e o FPS for 60, baixamos automaticamente para 30 FPS se o navegador sofrer, 
+          // mas aqui respeitamos o seletor aplicando um teto de segurança inteligente.
           const dynamicConstraints = {
             video: { 
-              width: { ideal: width }, 
-              height: { ideal: height }, 
+              width: { ideal: width, max: width }, 
+              height: { ideal: height, max: height }, 
               frameRate: { ideal: fps, max: fps }
             },
             audio: true
@@ -209,7 +221,7 @@
       socket.emit('stop-share');
     }
 
-    // Injeta a qualidade de Bitrate dependendo da escolha (Se quiserem tentar 30MB, é aqui que muda!)
+    // Aplica o Bitrate exato calculado dinamicamente
     function adicionarTracksComAltaQualidade(pc, stream) {
       stream.getTracks().forEach(track => {
         const sender = pc.addTrack(track, stream);
@@ -217,8 +229,8 @@
           const parameters = sender.getParameters();
           if (!parameters.encodings) parameters.encodings = [{}];
           
-          // Mantendo 8 Megabits para estabilidade na web, mude para 30000000 se quiser 4K extremo!
-          parameters.encodings[0].maxBitrate = 15000000;
+          parameters.encodings[0].maxBitrate = taxaDeBitsIdeal; 
+          
           sender.setParameters(parameters).catch(e => console.error(e));
         }
       });
