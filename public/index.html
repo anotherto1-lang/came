@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShareChat - Web Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- No site, o socket.io é carregado do próprio servidor -->
   <script src="/socket.io/socket.io.js"></script> 
 </head>
 <body class="bg-[#1e1f22] text-[#dbdee1] h-screen flex flex-col overflow-hidden font-sans">
@@ -27,7 +26,6 @@
       <h1 class="font-bold text-white tracking-wide">ShareChat Web</h1>
     </div>
     
-    <!-- PAINEL DE CONTROLE DE QUALIDADE -->
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
         <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
@@ -42,7 +40,6 @@
           <option value="60" selected>60 FPS</option>
         </select>
       </div>
-
       <button id="share-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition shadow">
         🖥️ Compartilhar Tela
       </button>
@@ -51,11 +48,8 @@
 
   <!-- CORPO PRINCIPAL -->
   <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-    
-    <!-- LADO ESQUERDO: VÍDEOS -->
     <div class="flex-1 bg-[#111214] p-4 flex flex-col items-center justify-center overflow-y-auto relative">
-      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr">
-      </div>
+      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr"></div>
       <div id="no-stream" class="absolute flex flex-col items-center text-[#949ba4]">
         <svg class="w-16 h-16 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
         <p class="font-medium">Nenhuma tela compartilhada</p>
@@ -63,7 +57,6 @@
       </div>
     </div>
 
-    <!-- LADO DIREITO: PARTICIPANTES E CHAT -->
     <div class="w-full md:w-80 bg-[#2b2d31] border-l border-[#1f2023] flex flex-col h-1/2 md:h-full shrink-0">
       <div class="p-4 border-b border-[#1f2023]">
         <div class="flex justify-between items-center mb-2">
@@ -86,7 +79,6 @@
   </div>
 
   <script>
-    // Na web, como HTML e Servidor estão no mesmo lugar, conectamos direto na raiz
     const socket = io();
     
     let username = "";
@@ -108,7 +100,6 @@
     const qualitySelect = document.getElementById('quality-select');
     const fpsSelect = document.getElementById('fps-select');
 
-    // Múltiplos servidores STUN para garantir a conexão na web
     const rtcConfig = { 
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -152,6 +143,13 @@
       });
     });
 
+    // CORREÇÃO: SE ALGUÉM ENTRAR E EU ESTIVER STREAMANDO, EU MANDO A TELA PRA ELE!
+    socket.on('new-user', (newUserId) => {
+      if (localStream) {
+        socket.emit('notify-already-sharing', newUserId);
+      }
+    });
+
     shareBtn.addEventListener('click', async () => {
       if (!localStream) {
         try {
@@ -159,7 +157,6 @@
           const height = parseInt(qualitySelect.value);
           const width = Math.round((height * 16) / 9); 
 
-          // Regras AMIGÁVEIS para Web (Navegadores rejeitam regras muito estritas)
           const dynamicConstraints = {
             video: { 
               width: { ideal: width }, 
@@ -173,7 +170,7 @@
           
           const videoTrack = localStream.getVideoTracks()[0];
           if ('contentHint' in videoTrack) {
-            videoTrack.contentHint = 'detail'; // Anti-serrilhado
+            videoTrack.contentHint = 'detail'; 
           }
           
           qualitySelect.disabled = true;
@@ -208,14 +205,16 @@
       socket.emit('stop-share');
     }
 
-    // Injeta a qualidade de Bitrate alta
+    // Injeta a qualidade de Bitrate dependendo da escolha (Se quiserem tentar 30MB, é aqui que muda!)
     function adicionarTracksComAltaQualidade(pc, stream) {
       stream.getTracks().forEach(track => {
         const sender = pc.addTrack(track, stream);
         if (track.kind === 'video') {
           const parameters = sender.getParameters();
           if (!parameters.encodings) parameters.encodings = [{}];
-          parameters.encodings[0].maxBitrate = 30000000;
+          
+          // Mantendo 8 Megabits para estabilidade na web, mude para 30000000 se quiser 4K extremo!
+          parameters.encodings[0].maxBitrate = 8000000;
           sender.setParameters(parameters).catch(e => console.error(e));
         }
       });
