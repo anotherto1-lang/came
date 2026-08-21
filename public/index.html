@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareChat - Web Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- No site, o socket.io é carregado do próprio servidor -->
+  <script src="/socket.io/socket.io.js"></script> 
+</head>
+<body class="bg-[#1e1f22] text-[#dbdee1] h-screen flex flex-col overflow-hidden font-sans">
+
+  <!-- MODAL DE NOME -->
+  <div id="login-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#313338] p-6 rounded-lg w-full max-w-md shadow-2xl border border-[#222327]">
+      <h2 class="text-2xl font-bold text-white mb-2">Bem-vindo ao ShareChat</h2>
+      <p class="text-[#949ba4] text-sm mb-4">Digite seu nome para entrar na sala:</p>
+      <input type="text" id="username-input" placeholder="Seu nome..." class="w-full bg-[#1e1f22] border border-transparent focus:border-[#5865f2] rounded p-3 text-white outline-none mb-4">
+      <button id="join-btn" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium p-3 rounded transition">Entrar na Sala</button>
+    </div>
+  </div>
+
+  <!-- TOPO -->
+  <header class="h-14 bg-[#2b2d31] border-b border-[#1f2023] flex items-center justify-between px-4 shrink-0">
+    <div class="flex items-center space-x-2">
+      <span class="bg-[#5865f2] text-white font-bold p-1.5 rounded text-sm">SC</span>
+      <h1 class="font-bold text-white tracking-wide">ShareChat Web</h1>
+    </div>
+    
+    <!-- PAINEL DE CONTROLE DE QUALIDADE -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
+        <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
+          <option value="720">720p (Leve)</option>
+          <option value="1080" selected>1080p (Padrão)</option>
+          <option value="1440">1440p (2K)</option>
+          <option value="2160">2160p (4K)</option>
+        </select>
+        <span class="text-[#4e5058]">|</span>
+        <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
+          <option value="30">30 FPS</option>
+          <option value="60" selected>60 FPS</option>
+        </select>
+      </div>
+
+      <button id="share-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition shadow">
+        🖥️ Compartilhar Tela
+      </button>
+    </div>
+  </header>
+
+  <!-- CORPO PRINCIPAL -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    
+    <!-- LADO ESQUERDO: VÍDEOS -->
+    <div class="flex-1 bg-[#111214] p-4 flex flex-col items-center justify-center overflow-y-auto relative">
+      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr">
+      </div>
+      <div id="no-stream" class="absolute flex flex-col items-center text-[#949ba4]">
+        <svg class="w-16 h-16 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        <p class="font-medium">Nenhuma tela compartilhada</p>
+        <span class="text-xs text-[#6d6f78]">Clique no botão azul no topo para iniciar</span>
+      </div>
+    </div>
+
+    <!-- LADO DIREITO: PARTICIPANTES E CHAT -->
+    <div class="w-full md:w-80 bg-[#2b2d31] border-l border-[#1f2023] flex flex-col h-1/2 md:h-full shrink-0">
+      <div class="p-4 border-b border-[#1f2023]">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-[#949ba4] tracking-wider uppercase">Participantes</span>
+          <span id="online-count" class="bg-[#248046] text-white text-xs px-2 py-0.5 rounded-full font-bold">1 online</span>
+        </div>
+        <div id="participants-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
+      </div>
+      <div class="flex-1 flex flex-col p-4 overflow-hidden">
+        <h3 class="text-xs font-bold text-[#949ba4] tracking-wider uppercase mb-2">Bate-papo da Sala</h3>
+        <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3 pr-2 text-sm"></div>
+        <div class="mt-3">
+          <form id="chat-form" class="flex gap-2">
+            <input type="text" id="chat-input" placeholder="Digite uma mensagem..." class="flex-1 bg-[#383a40] text-white px-3 py-2.5 rounded text-sm outline-none focus:ring-1 focus:ring-[#5865f2]">
+            <button type="submit" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 rounded flex items-center justify-center transition">➤</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Na web, como HTML e Servidor estão no mesmo lugar, conectamos direto na raiz
+    const socket = io();
+    
+    let username = "";
+    let localStream = null;
+    const peers = {};
+
+    const loginModal = document.getElementById('login-modal');
+    const usernameInput = document.getElementById('username-input');
+    const joinBtn = document.getElementById('join-btn');
+    const shareBtn = document.getElementById('share-btn');
+    const videoGrid = document.getElementById('video-grid');
+    const noStream = document.getElementById('no-stream');
+    const participantsList = document.getElementById('participants-list');
+    const onlineCount = document.getElementById('online-count');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    const qualitySelect = document.getElementById('quality-select');
+    const fpsSelect = document.getElementById('fps-select');
+
+    // Múltiplos servidores STUN para garantir a conexão na web
+    const rtcConfig = { 
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ] 
+    };
+
+    joinBtn.addEventListener('click', () => {
+      const name = usernameInput.value.trim();
+      if (!name) return alert('Digite um nome válido!');
+      username = name;
+      loginModal.style.display = 'none';
+      socket.emit('join-room', username);
+    });
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      socket.emit('chat-message', { name: username, message: msg });
+      chatInput.value = '';
+    });
+
+    socket.on('chat-message', (data) => {
+      const div = document.createElement('div');
+      div.innerHTML = `<strong class="text-white">${data.name}:</strong> <span class="text-[#dbdee1]">${data.message}</span>`;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    socket.on('update-users', (users) => {
+      participantsList.innerHTML = '';
+      onlineCount.innerText = `${users.length} online`;
+      users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-[#35373c]';
+        const isMe = user.name === username;
+        div.innerHTML = `<span class="w-2 h-2 rounded-full bg-[#248046]"></span> <span class="text-white">${user.name} ${isMe ? '(Você)' : ''}</span>`;
+        participantsList.appendChild(div);
+      });
+    });
+
+    shareBtn.addEventListener('click', async () => {
+      if (!localStream) {
+        try {
+          const fps = parseInt(fpsSelect.value);
+          const height = parseInt(qualitySelect.value);
+          const width = Math.round((height * 16) / 9); 
+
+          // Regras AMIGÁVEIS para Web (Navegadores rejeitam regras muito estritas)
+          const dynamicConstraints = {
+            video: { 
+              width: { ideal: width }, 
+              height: { ideal: height }, 
+              frameRate: { ideal: fps, max: fps }
+            },
+            audio: true
+          };
+
+          localStream = await navigator.mediaDevices.getDisplayMedia(dynamicConstraints);
+          
+          const videoTrack = localStream.getVideoTracks()[0];
+          if ('contentHint' in videoTrack) {
+            videoTrack.contentHint = 'detail'; // Anti-serrilhado
+          }
+          
+          qualitySelect.disabled = true;
+          fpsSelect.disabled = true;
+          
+          adicionarVideoUI('Sua Tela', localStream, true);
+          shareBtn.innerText = "Parar Compartilhamento";
+          shareBtn.classList.replace('bg-[#5865f2]', 'bg-[#ed4245]');
+          
+          videoTrack.onended = () => pararCompartilhamento();
+          socket.emit('start-share');
+        } catch (err) {
+          console.error("Compartilhamento cancelado ou falhou:", err);
+        }
+      } else {
+        pararCompartilhamento();
+      }
+    });
+
+    function pararCompartilhamento() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      qualitySelect.disabled = false;
+      fpsSelect.disabled = false;
+      const myVideo = document.getElementById('video-local');
+      if (myVideo) myVideo.remove();
+      shareBtn.innerText = "🖥️ Compartilhar Tela";
+      shareBtn.classList.replace('bg-[#ed4245]', 'bg-[#5865f2]');
+      atualizarLayoutGrade();
+      socket.emit('stop-share');
+    }
+
+    // Injeta a qualidade de Bitrate alta
+    function adicionarTracksComAltaQualidade(pc, stream) {
+      stream.getTracks().forEach(track => {
+        const sender = pc.addTrack(track, stream);
+        if (track.kind === 'video') {
+          const parameters = sender.getParameters();
+          if (!parameters.encodings) parameters.encodings = [{}];
+          parameters.encodings[0].maxBitrate = 8000000;
+          sender.setParameters(parameters).catch(e => console.error(e));
+        }
+      });
+    }
+
+    socket.on('user-started-share', async (id) => {
+      const pc = new RTCPeerConnection(rtcConfig);
+      peers[id] = pc;
+      
+      if (localStream) {
+        adicionarTracksComAltaQualidade(pc, localStream);
+      } else {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        pc.addTransceiver('audio', { direction: 'recvonly' });
+      }
+
+      pc.ontrack = (event) => adicionarVideoUI(`Tela de Amigo`, event.streams[0], false, id);
+      pc.onicecandidate = (event) => { if (event.candidate) socket.emit('ice-candidate', { target: id, candidate: event.candidate }); };
+      
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit('offer', { target: id, offer: pc.localDescription });
+    });
+
+    socket.on('offer', async ({ sender, offer }) => {
+      const pc = new RTCPeerConnection(rtcConfig);
+      peers[sender] = pc;
+      
+      if (localStream) {
+        adicionarTracksComAltaQualidade(pc, localStream);
+      } else {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        pc.addTransceiver('audio', { direction: 'recvonly' });
+      }
+
+      pc.ontrack = (event) => adicionarVideoUI(`Tela de Amigo`, event.streams[0], false, sender);
+      pc.onicecandidate = (event) => { if (event.candidate) socket.emit('ice-candidate', { target: sender, candidate: event.candidate }); };
+      
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('answer', { target: sender, answer: pc.localDescription });
+    });
+
+    socket.on('answer', async ({ sender, answer }) => {
+      if (peers[sender]) await peers[sender].setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socket.on('ice-candidate', async ({ sender, candidate }) => {
+      if (peers[sender]) await peers[sender].addIceCandidate(new RTCIceCandidate(candidate));
+    });
+
+    socket.on('user-stopped-share', (id) => {
+      if (peers[id]) { peers[id].close(); delete peers[id]; }
+      const el = document.getElementById(`video-${id}`);
+      if (el) el.remove();
+      atualizarLayoutGrade();
+    });
+
+    function adicionarVideoUI(title, stream, isLocal, id = 'local') {
+      noStream.style.display = 'none';
+      if (document.getElementById(`video-${id}`)) return;
+      const container = document.createElement('div');
+      container.id = `video-${id}`;
+      container.className = 'relative w-full h-full bg-black rounded-lg overflow-hidden flex items-center justify-center border border-[#222327] shadow-lg';
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.playsInline = true;
+      if (!isLocal) video.controls = true;
+      if (isLocal) video.muted = true;
+      video.className = 'w-full h-full object-contain';
+      const label = document.createElement('div');
+      label.className = 'absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded backdrop-blur font-medium';
+      label.innerText = title;
+      container.appendChild(video);
+      container.appendChild(label);
+      videoGrid.appendChild(container);
+      atualizarLayoutGrade();
+    }
+
+    function atualizarLayoutGrade() {
+      const telas = videoGrid.children.length;
+      if (telas === 0) {
+        noStream.style.display = 'flex';
+        videoGrid.className = 'w-full h-full grid gap-4 items-center justify-center auto-rows-fr';
+      } else if (telas === 1) {
+        videoGrid.className = 'w-full h-full grid grid-cols-1 gap-4 items-center justify-center auto-rows-fr';
+      } else if (telas === 2) {
+        videoGrid.className = 'w-full h-full grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-center auto-rows-fr';
+      } else {
+        videoGrid.className = 'w-full h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-center justify-center auto-rows-fr';
+      }
+    }
+  </script>
+</body>
+</html>
