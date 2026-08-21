@@ -9,7 +9,6 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// IMPORTANTE PARA A WEB: O servidor precisa entregar a pasta 'public' para o navegador
 app.use(express.static(path.join(__dirname, 'public')));
 
 let users = [];
@@ -20,6 +19,14 @@ io.on('connection', (socket) => {
     const user = { id: socket.id, name: name };
     users.push(user);
     io.emit('update-users', users);
+    
+    // CORREÇÃO: Avisa a todos que alguém novo entrou na sala
+    socket.broadcast.emit('new-user', socket.id);
+  });
+
+  // CORREÇÃO: A ponte para avisar o novato sobre telas que já estão ligadas
+  socket.on('notify-already-sharing', (targetId) => {
+    socket.to(targetId).emit('user-started-share', socket.id);
   });
 
   socket.on('chat-message', (data) => {
