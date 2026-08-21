@@ -214,7 +214,7 @@
           if (!parameters.encodings) parameters.encodings = [{}];
           
           // Mantendo 8 Megabits para estabilidade na web, mude para 30000000 se quiser 4K extremo!
-          parameters.encodings[0].maxBitrate = 8000000;
+          parameters.encodings[0].maxBitrate = 15000000;
           sender.setParameters(parameters).catch(e => console.error(e));
         }
       });
