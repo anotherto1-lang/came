@@ -28,18 +28,22 @@
     
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
+        
         <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option value="720">720p (Leve)</option>
-          <option value="1080" selected>1080p (Padrão)</option>
-          <option value="1440">1440p (2K)</option>
-          <option value="2160">2160p (4K)</option>
+          <option class="bg-[#2b2d31] text-white" value="720">720p (Leve)</option>
+          <option class="bg-[#2b2d31] text-white" value="1080" selected>1080p (Padrão)</option>
+          <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K)</option>
+          <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K)</option>
         </select>
+        
         <span class="text-[#4e5058]">|</span>
+        
         <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option value="30">30 FPS</option>
-          <option value="60" selected>60 FPS</option>
+          <option class="bg-[#2b2d31] text-white" value="30">30 FPS</option>
+          <option class="bg-[#2b2d31] text-white" value="60" selected>60 FPS</option>
         </select>
       </div>
+
       <button id="share-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition shadow">
         🖥️ Compartilhar Tela
       </button>
