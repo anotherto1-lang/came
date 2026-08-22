@@ -28,6 +28,7 @@
     
     <div class="flex items-center gap-2">
       <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
+        <!-- BOTAO 1: QUALIDADE -->
         <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
           <option class="bg-[#248046] text-white font-bold" value="auto" selected>✨ Automático</option>
           <option class="bg-[#2b2d31] text-white" value="360">360p</option>
@@ -38,16 +39,27 @@
           <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K)</option>
         </select>
         <span class="text-[#4e5058]">|</span>
+        
+        <!-- BOTAO 2: FPS -->
         <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
           <option class="bg-[#248046] text-white font-bold" value="auto" selected>✨ Auto FPS</option>
           <option class="bg-[#2b2d31] text-white" value="30">30 FPS</option>
           <option class="bg-[#2b2d31] text-white" value="60">60 FPS</option>
         </select>
         <span class="text-[#4e5058]">|</span>
+        
+        <!-- BOTAO 3: OTIMIZAÇÃO (ORIGINAL) -->
         <select id="opt-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white" title="Como agir se a internet ficar ruim?">
           <option class="bg-[#2b2d31] text-white" value="balanced" selected>Equilibrado</option>
           <option class="bg-[#2b2d31] text-white" value="maintain-framerate">Fluidez (Jogos)</option>
           <option class="bg-[#2b2d31] text-white" value="maintain-resolution">Nitidez (Texto)</option>
+        </select>
+        <span class="text-[#4e5058]">|</span>
+
+        <!-- BOTAO 4: NOVO (DETAIL vs MOTION) -->
+        <select id="hint-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white" title="Como o navegador deve capturar sua tela?">
+          <option class="bg-[#2b2d31] text-white" value="detail" selected>🎯 Modo Texto</option>
+          <option class="bg-[#2b2d31] text-white" value="motion">🎮 Modo Jogo</option>
         </select>
       </div>
 
@@ -112,6 +124,7 @@
     const qualitySelect = document.getElementById('quality-select');
     const fpsSelect = document.getElementById('fps-select');
     const optSelect = document.getElementById('opt-select');
+    const hintSelect = document.getElementById('hint-select'); // Puxando o botão novo
 
     const rtcConfig = { 
       iceServers: [
@@ -186,7 +199,7 @@
             else if (height <= 720) taxaDeBitsIdeal = 4000000;
             else if (height <= 1080) taxaDeBitsIdeal = 8000000;
             else if (height <= 1440) taxaDeBitsIdeal = 15000000;
-            else taxaDeBitsIdeal = 60000000;
+            else taxaDeBitsIdeal = 30000000;
 
             dynamicConstraints = {
               video: { width: { ideal: width, max: width }, height: { ideal: height, max: height }, frameRate: { ideal: fps, max: fps } },
@@ -198,14 +211,15 @@
           
           const videoTrack = localStream.getVideoTracks()[0];
           
-          // VOLTOU PARA DETAIL: Foco em nitidez e qualidade de imagem
+          // O CÓDIGO AGORA LÊ EXATAMENTE O SEU NOVO BOTÃO
           if ('contentHint' in videoTrack) {
-            videoTrack.contentHint = 'detail'; 
+            videoTrack.contentHint = hintSelect.value; 
           }
           
           qualitySelect.disabled = true;
           fpsSelect.disabled = true;
           optSelect.disabled = true;
+          hintSelect.disabled = true; // Desabilita o botão novo ao começar
           
           adicionarVideoUI('Sua Tela', localStream, true);
           shareBtn.innerText = "Parar Compartilhamento";
@@ -229,6 +243,7 @@
       qualitySelect.disabled = false;
       fpsSelect.disabled = false;
       optSelect.disabled = false;
+      hintSelect.disabled = false; // Reabilita o botão novo
       const myVideo = document.getElementById('video-local');
       if (myVideo) myVideo.remove();
       shareBtn.innerText = "🖥️ Compartilhar Tela";
