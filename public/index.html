@@ -221,22 +221,36 @@
       socket.emit('stop-share');
     }
 
-    // A MÁGICA CONTRA TRAVAMENTOS ACONTECE AQUI
+    // A MÁGICA FINAL: Bitrate + Degradação + Codec VP9 (Compressão Premium)
     function adicionarTracksComAltaQualidade(pc, stream) {
-      const otimizacao = optSelect.value; // Lê o que o usuário escolheu (Fluidez ou Nitidez)
+      const otimizacao = optSelect.value; 
       
       stream.getTracks().forEach(track => {
         const sender = pc.addTrack(track, stream);
+        
         if (track.kind === 'video') {
+          // 1. Aplica o Bitrate e a Regra de Travamento
           const parameters = sender.getParameters();
           if (!parameters.encodings) parameters.encodings = [{}];
-          
           parameters.encodings[0].maxBitrate = taxaDeBitsIdeal; 
-          
-          // Ensina o navegador como se comportar na internet ruim
           parameters.degradationPreference = otimizacao; 
-          
           sender.setParameters(parameters).catch(e => console.error(e));
+
+          // 2. FORÇA O CODEC VP9 (Vídeo mais leve com a mesma qualidade)
+          if (RTCRtpSender.getCapabilities) {
+            const transceivers = pc.getTransceivers();
+            transceivers.forEach(t => {
+              if (t.sender === sender) {
+                const codecs = RTCRtpSender.getCapabilities('video').codecs;
+                // Procura o VP9 no navegador
+                const vp9Codecs = codecs.filter(c => c.mimeType.toLowerCase() === 'video/vp9');
+                // Se o navegador suportar, obriga ele a usar o VP9!
+                if (vp9Codecs.length > 0) {
+                  t.setCodecPreferences(vp9Codecs);
+                }
+              }
+            });
+          }
         }
       });
     }
