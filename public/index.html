@@ -26,21 +26,28 @@
       <h1 class="font-bold text-white tracking-wide">ShareChat Web</h1>
     </div>
     
-    <!-- PAINEL DE CONTROLE DE QUALIDADE -->
-    <div class="flex items-center gap-3">
+    <!-- PAINEL DE CONTROLE DE QUALIDADE E OTIMIZAÇÃO -->
+    <div class="flex items-center gap-2">
       <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
         <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option class="bg-[#2b2d31] text-white" value="360">360p (Internet Fraca)</option>
-          <option class="bg-[#2b2d31] text-white" value="480">480p (Leve)</option>
-          <option class="bg-[#2b2d31] text-white" value="720">720p (Bom)</option>
-          <option class="bg-[#2b2d31] text-white" value="1080" selected>1080p (Padrão)</option>
-          <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K - 15 Mbps)</option>
-          <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K - 30 Mbps)</option>
+          <option class="bg-[#2b2d31] text-white" value="360">360p</option>
+          <option class="bg-[#2b2d31] text-white" value="480">480p</option>
+          <option class="bg-[#2b2d31] text-white" value="720">720p</option>
+          <option class="bg-[#2b2d31] text-white" value="1080" selected>1080p</option>
+          <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K)</option>
+          <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K)</option>
         </select>
         <span class="text-[#4e5058]">|</span>
         <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option class="bg-[#2b2d31] text-white" value="30">30 FPS (Mais Estável)</option>
-          <option class="bg-[#2b2d31] text-white" value="60" selected>60 FPS (Fluido)</option>
+          <option class="bg-[#2b2d31] text-white" value="30">30 FPS</option>
+          <option class="bg-[#2b2d31] text-white" value="60" selected>60 FPS</option>
+        </select>
+        <span class="text-[#4e5058]">|</span>
+        <!-- NOVO: SELETOR DE OTIMIZAÇÃO -->
+        <select id="opt-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white" title="Como agir se a internet ficar ruim?">
+          <option class="bg-[#2b2d31] text-white" value="balanced" selected>Automático</option>
+          <option class="bg-[#2b2d31] text-white" value="maintain-framerate">Fluidez (Jogos)</option>
+          <option class="bg-[#2b2d31] text-white" value="maintain-resolution">Nitidez (Texto)</option>
         </select>
       </div>
 
@@ -53,10 +60,8 @@
   <!-- CORPO PRINCIPAL -->
   <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
     
-    <!-- LADO ESQUERDO: VÍDEOS -->
     <div class="flex-1 bg-[#111214] p-4 flex flex-col items-center justify-center overflow-y-auto relative">
-      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr">
-      </div>
+      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr"></div>
       <div id="no-stream" class="absolute flex flex-col items-center text-[#949ba4]">
         <svg class="w-16 h-16 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
         <p class="font-medium">Nenhuma tela compartilhada</p>
@@ -64,7 +69,6 @@
       </div>
     </div>
 
-    <!-- LADO DIREITO: PARTICIPANTES E CHAT -->
     <div class="w-full md:w-80 bg-[#2b2d31] border-l border-[#1f2023] flex flex-col h-1/2 md:h-full shrink-0">
       <div class="p-4 border-b border-[#1f2023]">
         <div class="flex justify-between items-center mb-2">
@@ -108,6 +112,7 @@
 
     const qualitySelect = document.getElementById('quality-select');
     const fpsSelect = document.getElementById('fps-select');
+    const optSelect = document.getElementById('opt-select');
 
     const rtcConfig = { 
       iceServers: [
@@ -163,16 +168,14 @@
           const height = parseInt(qualitySelect.value);
           const width = Math.round((height * 16) / 9); 
 
-          // SISTEMA INTELIGENTE DE BITRATE (Ajustado para 15 Mbps em 2K e 30 Mbps em 4K)
-          if (height <= 360) taxaDeBitsIdeal = 1000000;       // 1 Mbps (360p)
-          else if (height <= 480) taxaDeBitsIdeal = 2000000;  // 2 Mbps (480p)
-          else if (height <= 720) taxaDeBitsIdeal = 4000000;  // 4 Mbps (720p)
-          else if (height <= 1080) taxaDeBitsIdeal = 9000000; // 8 Mbps (1080p)
-          else if (height <= 1440) taxaDeBitsIdeal = 15000000;// 15 Mbps (2K)
-          else taxaDeBitsIdeal = 30000000;                    // 30 Mbps (4K)
+          if (height <= 360) taxaDeBitsIdeal = 1000000;
+          else if (height <= 480) taxaDeBitsIdeal = 2000000;
+          else if (height <= 720) taxaDeBitsIdeal = 4000000;
+          else if (height <= 1080) taxaDeBitsIdeal = 8000000;
+          else if (height <= 1440) taxaDeBitsIdeal = 15000000;
+          else taxaDeBitsIdeal = 30000000;
 
-          // Se a qualidade for 4K e o FPS for 60, baixamos automaticamente para 30 FPS se o navegador sofrer, 
-          // mas aqui respeitamos o seletor aplicando um teto de segurança inteligente.
+          // REMOVIDO o resizeMode: 'none' para permitir que o navegador adapte o vídeo sem travar
           const dynamicConstraints = {
             video: { 
               width: { ideal: width, max: width }, 
@@ -184,19 +187,15 @@
 
           localStream = await navigator.mediaDevices.getDisplayMedia(dynamicConstraints);
           
-          const videoTrack = localStream.getVideoTracks()[0];
-          if ('contentHint' in videoTrack) {
-            videoTrack.contentHint = 'detail'; 
-          }
-          
           qualitySelect.disabled = true;
           fpsSelect.disabled = true;
+          optSelect.disabled = true;
           
           adicionarVideoUI('Sua Tela', localStream, true);
           shareBtn.innerText = "Parar Compartilhamento";
           shareBtn.classList.replace('bg-[#5865f2]', 'bg-[#ed4245]');
           
-          videoTrack.onended = () => pararCompartilhamento();
+          localStream.getVideoTracks()[0].onended = () => pararCompartilhamento();
           socket.emit('start-share');
         } catch (err) {
           console.error("Compartilhamento cancelado ou falhou:", err);
@@ -213,6 +212,7 @@
       }
       qualitySelect.disabled = false;
       fpsSelect.disabled = false;
+      optSelect.disabled = false;
       const myVideo = document.getElementById('video-local');
       if (myVideo) myVideo.remove();
       shareBtn.innerText = "🖥️ Compartilhar Tela";
@@ -221,8 +221,10 @@
       socket.emit('stop-share');
     }
 
-    // Aplica o Bitrate exato calculado dinamicamente
+    // A MÁGICA CONTRA TRAVAMENTOS ACONTECE AQUI
     function adicionarTracksComAltaQualidade(pc, stream) {
+      const otimizacao = optSelect.value; // Lê o que o usuário escolheu (Fluidez ou Nitidez)
+      
       stream.getTracks().forEach(track => {
         const sender = pc.addTrack(track, stream);
         if (track.kind === 'video') {
@@ -230,6 +232,9 @@
           if (!parameters.encodings) parameters.encodings = [{}];
           
           parameters.encodings[0].maxBitrate = taxaDeBitsIdeal; 
+          
+          // Ensina o navegador como se comportar na internet ruim
+          parameters.degradationPreference = otimizacao; 
           
           sender.setParameters(parameters).catch(e => console.error(e));
         }
@@ -240,9 +245,8 @@
       const pc = new RTCPeerConnection(rtcConfig);
       peers[id] = pc;
       
-      if (localStream) {
-        adicionarTracksComAltaQualidade(pc, localStream);
-      } else {
+      if (localStream) adicionarTracksComAltaQualidade(pc, localStream);
+      else {
         pc.addTransceiver('video', { direction: 'recvonly' });
         pc.addTransceiver('audio', { direction: 'recvonly' });
       }
@@ -259,9 +263,8 @@
       const pc = new RTCPeerConnection(rtcConfig);
       peers[sender] = pc;
       
-      if (localStream) {
-        adicionarTracksComAltaQualidade(pc, localStream);
-      } else {
+      if (localStream) adicionarTracksComAltaQualidade(pc, localStream);
+      else {
         pc.addTransceiver('video', { direction: 'recvonly' });
         pc.addTransceiver('audio', { direction: 'recvonly' });
       }
