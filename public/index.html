@@ -165,23 +165,18 @@
         try {
           let height, width, fps, dynamicConstraints;
           
-          // MODO AUTOMÁTICO INTELIGENTE
           if (qualitySelect.value === 'auto' || fpsSelect.value === 'auto') {
-            // Pega o tamanho real do monitor do usuário!
             height = window.screen.height;
             width = window.screen.width;
             fps = 60; 
             
-            // Define o teto máximo de internet baseado no monitor dele
             taxaDeBitsIdeal = (height >= 1440) ? 20000000 : 10000000;
 
-            // Ao não usar o 'max', damos liberdade total para o navegador diminuir se a internet cair
             dynamicConstraints = {
               video: { width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: fps } },
               audio: true
             };
           } else {
-            // MODO MANUAL (O usuário forçou uma configuração)
             fps = parseInt(fpsSelect.value);
             height = parseInt(qualitySelect.value);
             width = Math.round((height * 16) / 9); 
@@ -193,7 +188,6 @@
             else if (height <= 1440) taxaDeBitsIdeal = 15000000;
             else taxaDeBitsIdeal = 30000000;
 
-            // Modo estrito: Obriga o navegador a seguir a regra ('max')
             dynamicConstraints = {
               video: { width: { ideal: width, max: width }, height: { ideal: height, max: height }, frameRate: { ideal: fps, max: fps } },
               audio: true
@@ -201,6 +195,13 @@
           }
 
           localStream = await navigator.mediaDevices.getDisplayMedia(dynamicConstraints);
+          
+          const videoTrack = localStream.getVideoTracks()[0];
+          
+          // MUDANÇA PARA JOGOS: Foco na fluidez e movimento em vez de textos estáticos
+          if ('contentHint' in videoTrack) {
+            videoTrack.contentHint = 'motion'; 
+          }
           
           qualitySelect.disabled = true;
           fpsSelect.disabled = true;
@@ -210,7 +211,7 @@
           shareBtn.innerText = "Parar Compartilhamento";
           shareBtn.classList.replace('bg-[#5865f2]', 'bg-[#ed4245]');
           
-          localStream.getVideoTracks()[0].onended = () => pararCompartilhamento();
+          videoTrack.onended = () => pararCompartilhamento();
           socket.emit('start-share');
         } catch (err) {
           console.error("Compartilhamento cancelado ou falhou:", err);
@@ -236,9 +237,7 @@
       socket.emit('stop-share');
     }
 
-    // A MÁGICA FINAL: Bitrate + Degradação + Codec VP9
     function adicionarTracksComAltaQualidade(pc, stream) {
-      // Se for Automático, ele assume Equilibrado. Se não, usa a escolha do usuário.
       const otimizacao = (qualitySelect.value === 'auto') ? 'balanced' : optSelect.value; 
       
       stream.getTracks().forEach(track => {
@@ -252,7 +251,6 @@
           
           sender.setParameters(parameters).catch(e => console.error(e));
 
-          // FORÇA O CODEC VP9 (Vídeo Leve com Qualidade Premium)
           if (RTCRtpSender.getCapabilities) {
             const transceivers = pc.getTransceivers();
             transceivers.forEach(t => {
