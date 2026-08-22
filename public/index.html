@@ -186,7 +186,7 @@
             else if (height <= 720) taxaDeBitsIdeal = 4000000;
             else if (height <= 1080) taxaDeBitsIdeal = 8000000;
             else if (height <= 1440) taxaDeBitsIdeal = 15000000;
-            else taxaDeBitsIdeal = 30000000;
+            else taxaDeBitsIdeal = 60000000;
 
             dynamicConstraints = {
               video: { width: { ideal: width, max: width }, height: { ideal: height, max: height }, frameRate: { ideal: fps, max: fps } },
