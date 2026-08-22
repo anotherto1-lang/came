@@ -26,26 +26,26 @@
       <h1 class="font-bold text-white tracking-wide">ShareChat Web</h1>
     </div>
     
-    <!-- PAINEL DE CONTROLE DE QUALIDADE E OTIMIZAÇÃO -->
     <div class="flex items-center gap-2">
       <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
         <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
+          <option class="bg-[#248046] text-white font-bold" value="auto" selected>✨ Automático</option>
           <option class="bg-[#2b2d31] text-white" value="360">360p</option>
           <option class="bg-[#2b2d31] text-white" value="480">480p</option>
           <option class="bg-[#2b2d31] text-white" value="720">720p</option>
-          <option class="bg-[#2b2d31] text-white" value="1080" selected>1080p</option>
+          <option class="bg-[#2b2d31] text-white" value="1080">1080p</option>
           <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K)</option>
           <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K)</option>
         </select>
         <span class="text-[#4e5058]">|</span>
         <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
+          <option class="bg-[#248046] text-white font-bold" value="auto" selected>✨ Auto FPS</option>
           <option class="bg-[#2b2d31] text-white" value="30">30 FPS</option>
-          <option class="bg-[#2b2d31] text-white" value="60" selected>60 FPS</option>
+          <option class="bg-[#2b2d31] text-white" value="60">60 FPS</option>
         </select>
         <span class="text-[#4e5058]">|</span>
-        <!-- NOVO: SELETOR DE OTIMIZAÇÃO -->
         <select id="opt-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white" title="Como agir se a internet ficar ruim?">
-          <option class="bg-[#2b2d31] text-white" value="balanced" selected>Automático</option>
+          <option class="bg-[#2b2d31] text-white" value="balanced" selected>Equilibrado</option>
           <option class="bg-[#2b2d31] text-white" value="maintain-framerate">Fluidez (Jogos)</option>
           <option class="bg-[#2b2d31] text-white" value="maintain-resolution">Nitidez (Texto)</option>
         </select>
@@ -59,7 +59,6 @@
 
   <!-- CORPO PRINCIPAL -->
   <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-    
     <div class="flex-1 bg-[#111214] p-4 flex flex-col items-center justify-center overflow-y-auto relative">
       <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr"></div>
       <div id="no-stream" class="absolute flex flex-col items-center text-[#949ba4]">
@@ -164,26 +163,42 @@
     shareBtn.addEventListener('click', async () => {
       if (!localStream) {
         try {
-          const fps = parseInt(fpsSelect.value);
-          const height = parseInt(qualitySelect.value);
-          const width = Math.round((height * 16) / 9); 
+          let height, width, fps, dynamicConstraints;
+          
+          // MODO AUTOMÁTICO INTELIGENTE
+          if (qualitySelect.value === 'auto' || fpsSelect.value === 'auto') {
+            // Pega o tamanho real do monitor do usuário!
+            height = window.screen.height;
+            width = window.screen.width;
+            fps = 60; 
+            
+            // Define o teto máximo de internet baseado no monitor dele
+            taxaDeBitsIdeal = (height >= 1440) ? 20000000 : 10000000;
 
-          if (height <= 360) taxaDeBitsIdeal = 1000000;
-          else if (height <= 480) taxaDeBitsIdeal = 2000000;
-          else if (height <= 720) taxaDeBitsIdeal = 4000000;
-          else if (height <= 1080) taxaDeBitsIdeal = 8000000;
-          else if (height <= 1440) taxaDeBitsIdeal = 15000000;
-          else taxaDeBitsIdeal = 30000000;
+            // Ao não usar o 'max', damos liberdade total para o navegador diminuir se a internet cair
+            dynamicConstraints = {
+              video: { width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: fps } },
+              audio: true
+            };
+          } else {
+            // MODO MANUAL (O usuário forçou uma configuração)
+            fps = parseInt(fpsSelect.value);
+            height = parseInt(qualitySelect.value);
+            width = Math.round((height * 16) / 9); 
 
-          // REMOVIDO o resizeMode: 'none' para permitir que o navegador adapte o vídeo sem travar
-          const dynamicConstraints = {
-            video: { 
-              width: { ideal: width, max: width }, 
-              height: { ideal: height, max: height }, 
-              frameRate: { ideal: fps, max: fps }
-            },
-            audio: true
-          };
+            if (height <= 360) taxaDeBitsIdeal = 1000000;
+            else if (height <= 480) taxaDeBitsIdeal = 2000000;
+            else if (height <= 720) taxaDeBitsIdeal = 4000000;
+            else if (height <= 1080) taxaDeBitsIdeal = 8000000;
+            else if (height <= 1440) taxaDeBitsIdeal = 15000000;
+            else taxaDeBitsIdeal = 30000000;
+
+            // Modo estrito: Obriga o navegador a seguir a regra ('max')
+            dynamicConstraints = {
+              video: { width: { ideal: width, max: width }, height: { ideal: height, max: height }, frameRate: { ideal: fps, max: fps } },
+              audio: true
+            };
+          }
 
           localStream = await navigator.mediaDevices.getDisplayMedia(dynamicConstraints);
           
@@ -221,30 +236,29 @@
       socket.emit('stop-share');
     }
 
-    // A MÁGICA FINAL: Bitrate + Degradação + Codec VP9 (Compressão Premium)
+    // A MÁGICA FINAL: Bitrate + Degradação + Codec VP9
     function adicionarTracksComAltaQualidade(pc, stream) {
-      const otimizacao = optSelect.value; 
+      // Se for Automático, ele assume Equilibrado. Se não, usa a escolha do usuário.
+      const otimizacao = (qualitySelect.value === 'auto') ? 'balanced' : optSelect.value; 
       
       stream.getTracks().forEach(track => {
         const sender = pc.addTrack(track, stream);
-        
         if (track.kind === 'video') {
-          // 1. Aplica o Bitrate e a Regra de Travamento
           const parameters = sender.getParameters();
           if (!parameters.encodings) parameters.encodings = [{}];
+          
           parameters.encodings[0].maxBitrate = taxaDeBitsIdeal; 
           parameters.degradationPreference = otimizacao; 
+          
           sender.setParameters(parameters).catch(e => console.error(e));
 
-          // 2. FORÇA O CODEC VP9 (Vídeo mais leve com a mesma qualidade)
+          // FORÇA O CODEC VP9 (Vídeo Leve com Qualidade Premium)
           if (RTCRtpSender.getCapabilities) {
             const transceivers = pc.getTransceivers();
             transceivers.forEach(t => {
               if (t.sender === sender) {
                 const codecs = RTCRtpSender.getCapabilities('video').codecs;
-                // Procura o VP9 no navegador
                 const vp9Codecs = codecs.filter(c => c.mimeType.toLowerCase() === 'video/vp9');
-                // Se o navegador suportar, obriga ele a usar o VP9!
                 if (vp9Codecs.length > 0) {
                   t.setCodecPreferences(vp9Codecs);
                 }
