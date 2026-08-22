@@ -198,9 +198,9 @@
           
           const videoTrack = localStream.getVideoTracks()[0];
           
-          // MUDANÇA PARA JOGOS: Foco na fluidez e movimento em vez de textos estáticos
+          // VOLTOU PARA DETAIL: Foco em nitidez e qualidade de imagem
           if ('contentHint' in videoTrack) {
-            videoTrack.contentHint = 'motion'; 
+            videoTrack.contentHint = 'detail'; 
           }
           
           qualitySelect.disabled = true;
