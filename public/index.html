@@ -1,374 +1,1398 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShareChat - Web Pro</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/socket.io/socket.io.js"></script> 
-</head>
-<body class="bg-[#1e1f22] text-[#dbdee1] h-screen flex flex-col overflow-hidden font-sans">
-
-  <!-- MODAL DE NOME -->
-  <div id="login-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-[#313338] p-6 rounded-lg w-full max-w-md shadow-2xl border border-[#222327]">
-      <h2 class="text-2xl font-bold text-white mb-2">Bem-vindo ao ShareChat</h2>
-      <p class="text-[#949ba4] text-sm mb-4">Digite seu nome para entrar na sala:</p>
-      <input type="text" id="username-input" placeholder="Seu nome..." class="w-full bg-[#1e1f22] border border-transparent focus:border-[#5865f2] rounded p-3 text-white outline-none mb-4">
-      <button id="join-btn" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium p-3 rounded transition">Entrar na Sala</button>
-    </div>
-  </div>
-
-  <!-- TOPO -->
-  <header class="h-14 bg-[#2b2d31] border-b border-[#1f2023] flex items-center justify-between px-4 shrink-0">
-    <div class="flex items-center space-x-2">
-      <span class="bg-[#5865f2] text-white font-bold p-1.5 rounded text-sm">SC</span>
-      <h1 class="font-bold text-white tracking-wide">ShareChat Web</h1>
-    </div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Albion Trader Pro V3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
-    <div class="flex items-center gap-2">
-      <div class="flex items-center gap-2 bg-[#1e1f22] p-1.5 rounded-md border border-[#1f2023] shadow-inner">
-        <!-- BOTAO 1: QUALIDADE -->
-        <select id="quality-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option class="bg-[#248046] text-white font-bold" value="auto" selected>✨ Automático</option>
-          <option class="bg-[#2b2d31] text-white" value="360">360p</option>
-          <option class="bg-[#2b2d31] text-white" value="480">480p</option>
-          <option class="bg-[#2b2d31] text-white" value="720">720p</option>
-          <option class="bg-[#2b2d31] text-white" value="1080">1080p</option>
-          <option class="bg-[#2b2d31] text-white" value="1440">1440p (2K)</option>
-          <option class="bg-[#2b2d31] text-white" value="2160">2160p (4K)</option>
-        </select>
-        <span class="text-[#4e5058]">|</span>
-        
-        <!-- BOTAO 2: FPS -->
-        <select id="fps-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white">
-          <option class="bg-[#248046] text-white font-bold" value="auto" selected>✨ Auto FPS</option>
-          <option class="bg-[#2b2d31] text-white" value="30">30 FPS</option>
-          <option class="bg-[#2b2d31] text-white" value="60">60 FPS</option>
-        </select>
-        <span class="text-[#4e5058]">|</span>
-        
-        <!-- BOTAO 3: OTIMIZAÇÃO (ORIGINAL) -->
-        <select id="opt-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white" title="Como agir se a internet ficar ruim?">
-          <option class="bg-[#2b2d31] text-white" value="balanced" selected>Equilibrado</option>
-          <option class="bg-[#2b2d31] text-white" value="maintain-framerate">Fluidez (Jogos)</option>
-          <option class="bg-[#2b2d31] text-white" value="maintain-resolution">Nitidez (Texto)</option>
-        </select>
-        <span class="text-[#4e5058]">|</span>
-
-        <!-- BOTAO 4: NOVO (DETAIL vs MOTION) -->
-        <select id="hint-select" class="bg-transparent text-[#dbdee1] text-xs outline-none cursor-pointer hover:text-white" title="Como o navegador deve capturar sua tela?">
-          <option class="bg-[#2b2d31] text-white" value="detail" selected>🎯 Modo Texto</option>
-          <option class="bg-[#2b2d31] text-white" value="motion">🎮 Modo Jogo</option>
-        </select>
-      </div>
-
-      <button id="share-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition shadow">
-        🖥️ Compartilhar Tela
-      </button>
-    </div>
-  </header>
-
-  <!-- CORPO PRINCIPAL -->
-  <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-    <div class="flex-1 bg-[#111214] p-4 flex flex-col items-center justify-center overflow-y-auto relative">
-      <div id="video-grid" class="w-full h-full grid gap-4 items-center justify-center auto-rows-fr"></div>
-      <div id="no-stream" class="absolute flex flex-col items-center text-[#949ba4]">
-        <svg class="w-16 h-16 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-        <p class="font-medium">Nenhuma tela compartilhada</p>
-        <span class="text-xs text-[#6d6f78]">Clique no botão azul no topo para iniciar</span>
-      </div>
-    </div>
-
-    <div class="w-full md:w-80 bg-[#2b2d31] border-l border-[#1f2023] flex flex-col h-1/2 md:h-full shrink-0">
-      <div class="p-4 border-b border-[#1f2023]">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-xs font-bold text-[#949ba4] tracking-wider uppercase">Participantes</span>
-          <span id="online-count" class="bg-[#248046] text-white text-xs px-2 py-0.5 rounded-full font-bold">1 online</span>
-        </div>
-        <div id="participants-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
-      </div>
-      <div class="flex-1 flex flex-col p-4 overflow-hidden">
-        <h3 class="text-xs font-bold text-[#949ba4] tracking-wider uppercase mb-2">Bate-papo da Sala</h3>
-        <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3 pr-2 text-sm"></div>
-        <div class="mt-3">
-          <form id="chat-form" class="flex gap-2">
-            <input type="text" id="chat-input" placeholder="Digite uma mensagem..." class="flex-1 bg-[#383a40] text-white px-3 py-2.5 rounded text-sm outline-none focus:ring-1 focus:ring-[#5865f2]">
-            <button type="submit" class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 rounded flex items-center justify-center transition">➤</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const socket = io();
-    
-    let username = "";
-    let localStream = null;
-    let taxaDeBitsIdeal = 8000000; 
-    const peers = {};
-
-    const loginModal = document.getElementById('login-modal');
-    const usernameInput = document.getElementById('username-input');
-    const joinBtn = document.getElementById('join-btn');
-    const shareBtn = document.getElementById('share-btn');
-    const videoGrid = document.getElementById('video-grid');
-    const noStream = document.getElementById('no-stream');
-    const participantsList = document.getElementById('participants-list');
-    const onlineCount = document.getElementById('online-count');
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    const qualitySelect = document.getElementById('quality-select');
-    const fpsSelect = document.getElementById('fps-select');
-    const optSelect = document.getElementById('opt-select');
-    const hintSelect = document.getElementById('hint-select'); // Puxando o botão novo
-
-    const rtcConfig = { 
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
-      ] 
-    };
-
-    joinBtn.addEventListener('click', () => {
-      const name = usernameInput.value.trim();
-      if (!name) return alert('Digite um nome válido!');
-      username = name;
-      loginModal.style.display = 'none';
-      socket.emit('join-room', username);
-    });
-
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const msg = chatInput.value.trim();
-      if (!msg) return;
-      socket.emit('chat-message', { name: username, message: msg });
-      chatInput.value = '';
-    });
-
-    socket.on('chat-message', (data) => {
-      const div = document.createElement('div');
-      div.innerHTML = `<strong class="text-white">${data.name}:</strong> <span class="text-[#dbdee1]">${data.message}</span>`;
-      chatMessages.appendChild(div);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
-
-    socket.on('update-users', (users) => {
-      participantsList.innerHTML = '';
-      onlineCount.innerText = `${users.length} online`;
-      users.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-[#35373c]';
-        const isMe = user.name === username;
-        div.innerHTML = `<span class="w-2 h-2 rounded-full bg-[#248046]"></span> <span class="text-white">${user.name} ${isMe ? '(Você)' : ''}</span>`;
-        participantsList.appendChild(div);
-      });
-    });
-
-    socket.on('new-user', (newUserId) => {
-      if (localStream) socket.emit('notify-already-sharing', newUserId);
-    });
-
-    shareBtn.addEventListener('click', async () => {
-      if (!localStream) {
-        try {
-          let height, width, fps, dynamicConstraints;
-          
-          if (qualitySelect.value === 'auto' || fpsSelect.value === 'auto') {
-            height = window.screen.height;
-            width = window.screen.width;
-            fps = 60; 
-            
-            taxaDeBitsIdeal = (height >= 1440) ? 20000000 : 10000000;
-
-            dynamicConstraints = {
-              video: { width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: fps } },
-              audio: true
-            };
-          } else {
-            fps = parseInt(fpsSelect.value);
-            height = parseInt(qualitySelect.value);
-            width = Math.round((height * 16) / 9); 
-
-            if (height <= 360) taxaDeBitsIdeal = 1000000;
-            else if (height <= 480) taxaDeBitsIdeal = 2000000;
-            else if (height <= 720) taxaDeBitsIdeal = 4000000;
-            else if (height <= 1080) taxaDeBitsIdeal = 8000000;
-            else if (height <= 1440) taxaDeBitsIdeal = 15000000;
-            else taxaDeBitsIdeal = 30000000;
-
-            dynamicConstraints = {
-              video: { width: { ideal: width, max: width }, height: { ideal: height, max: height }, frameRate: { ideal: fps, max: fps } },
-              audio: true
-            };
-          }
-
-          localStream = await navigator.mediaDevices.getDisplayMedia(dynamicConstraints);
-          
-          const videoTrack = localStream.getVideoTracks()[0];
-          
-          // O CÓDIGO AGORA LÊ EXATAMENTE O SEU NOVO BOTÃO
-          if ('contentHint' in videoTrack) {
-            videoTrack.contentHint = hintSelect.value; 
-          }
-          
-          qualitySelect.disabled = true;
-          fpsSelect.disabled = true;
-          optSelect.disabled = true;
-          hintSelect.disabled = true; // Desabilita o botão novo ao começar
-          
-          adicionarVideoUI('Sua Tela', localStream, true);
-          shareBtn.innerText = "Parar Compartilhamento";
-          shareBtn.classList.replace('bg-[#5865f2]', 'bg-[#ed4245]');
-          
-          videoTrack.onended = () => pararCompartilhamento();
-          socket.emit('start-share');
-        } catch (err) {
-          console.error("Compartilhamento cancelado ou falhou:", err);
-        }
-      } else {
-        pararCompartilhamento();
-      }
-    });
-
-    function pararCompartilhamento() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      qualitySelect.disabled = false;
-      fpsSelect.disabled = false;
-      optSelect.disabled = false;
-      hintSelect.disabled = false; // Reabilita o botão novo
-      const myVideo = document.getElementById('video-local');
-      if (myVideo) myVideo.remove();
-      shareBtn.innerText = "🖥️ Compartilhar Tela";
-      shareBtn.classList.replace('bg-[#ed4245]', 'bg-[#5865f2]');
-      atualizarLayoutGrade();
-      socket.emit('stop-share');
-    }
-
-    function adicionarTracksComAltaQualidade(pc, stream) {
-      const otimizacao = (qualitySelect.value === 'auto') ? 'balanced' : optSelect.value; 
-      
-      stream.getTracks().forEach(track => {
-        const sender = pc.addTrack(track, stream);
-        if (track.kind === 'video') {
-          const parameters = sender.getParameters();
-          if (!parameters.encodings) parameters.encodings = [{}];
-          
-          parameters.encodings[0].maxBitrate = taxaDeBitsIdeal; 
-          parameters.degradationPreference = otimizacao; 
-          
-          sender.setParameters(parameters).catch(e => console.error(e));
-
-          if (RTCRtpSender.getCapabilities) {
-            const transceivers = pc.getTransceivers();
-            transceivers.forEach(t => {
-              if (t.sender === sender) {
-                const codecs = RTCRtpSender.getCapabilities('video').codecs;
-                const vp9Codecs = codecs.filter(c => c.mimeType.toLowerCase() === 'video/vp9');
-                if (vp9Codecs.length > 0) {
-                  t.setCodecPreferences(vp9Codecs);
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { 
+                        app: {
+                            bg: '#0B0F19', // Fundo super escuro
+                            panel: '#151C2C', // Paineis levemente mais claros
+                            border: '#2A3441'
+                        }
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.2)' },
+                            '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.6)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    }
                 }
-              }
-            });
-          }
+            }
         }
-      });
-    }
+    </script>
+    
+    <style>
+        body { 
+            background-color: #0B0F19; 
+            color: #f8fafc; 
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 25%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .glass-panel {
+            background: rgba(21, 28, 44, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
 
-    socket.on('user-started-share', async (id) => {
-      const pc = new RTCPeerConnection(rtcConfig);
-      peers[id] = pc;
-      
-      if (localStream) adicionarTracksComAltaQualidade(pc, localStream);
-      else {
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        pc.addTransceiver('audio', { direction: 'recvonly' });
-      }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+        }
 
-      pc.ontrack = (event) => adicionarVideoUI(`Tela de Amigo`, event.streams[0], false, id);
-      pc.onicecandidate = (event) => { if (event.candidate) socket.emit('ice-candidate', { target: id, candidate: event.candidate }); };
-      
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.emit('offer', { target: id, offer: pc.localDescription });
-    });
+        /* Select customizados */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
 
-    socket.on('offer', async ({ sender, offer }) => {
-      const pc = new RTCPeerConnection(rtcConfig);
-      peers[sender] = pc;
-      
-      if (localStream) adicionarTracksComAltaQualidade(pc, localStream);
-      else {
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        pc.addTransceiver('audio', { direction: 'recvonly' });
-      }
+        /* Correção Definitiva para o Fundo Branco das Opções no Windows/Chrome */
+        select option {
+            background-color: #0B0F19; /* Cor do fundo escuro do app */
+            color: #f8fafc; /* Cor do texto branco */
+            font-weight: 600;
+        }
 
-      pc.ontrack = (event) => adicionarVideoUI(`Tela de Amigo`, event.streams[0], false, sender);
-      pc.onicecandidate = (event) => { if (event.candidate) socket.emit('ice-candidate', { target: sender, candidate: event.candidate }); };
-      
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('answer', { target: sender, answer: pc.localDescription });
-    });
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-left-color: currentColor;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(11, 15, 25, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="p-4 md:p-6 flex flex-col items-center">
 
-    socket.on('answer', async ({ sender, answer }) => {
-      if (peers[sender]) await peers[sender].setRemoteDescription(new RTCSessionDescription(answer));
-    });
+    <div id="accessOverlay" class="fixed inset-0 bg-[#0B0F19]/95 z-[100] flex items-center justify-center p-4 transition-opacity duration-500 backdrop-blur-md">
+        <div class="glass-panel p-8 rounded-3xl max-w-md w-full relative overflow-hidden group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-1000"></div>
+            <div class="relative flex flex-col items-center">
+                
+                <div id="secretPadlock" class="w-24 h-24 mb-6 cursor-pointer hover:scale-110 transition-transform duration-300 animate-float" ondblclick="toggleAdminLogin()">
+                    <div class="w-full h-full bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(250,204,21,0.3)]">
+                        <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <h2 id="accessTitle" class="text-3xl font-black text-white mb-2 text-center tracking-tight">Acesso Restrito</h2>
+                <p id="accessDesc" class="text-slate-400 text-sm mb-8 text-center font-medium">Insira sua chave de acesso para continuar.</p>
 
-    socket.on('ice-candidate', async ({ sender, candidate }) => {
-      if (peers[sender]) await peers[sender].addIceCandidate(new RTCIceCandidate(candidate));
-    });
+                <div id="keyForm" class="w-full flex flex-col gap-4">
+                    <input type="text" id="accessKeyInput" placeholder="Sua Chave (ex: ALBION-XXXX)" class="w-full bg-[#0B0F19] border border-slate-700/50 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center font-mono tracking-widest uppercase shadow-inner">
+                    <button onclick="unlockAppWithKey()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:-translate-y-0.5">Validar Chave</button>
+                </div>
 
-    socket.on('user-stopped-share', (id) => {
-      if (peers[id]) { peers[id].close(); delete peers[id]; }
-      const el = document.getElementById(`video-${id}`);
-      if (el) el.remove();
-      atualizarLayoutGrade();
-    });
+                <div id="adminForm" class="w-full flex-col gap-4 hidden">
+                    <input type="text" id="adminUserInput" placeholder="Usuário Admin" class="w-full bg-[#0B0F19] border border-slate-700/50 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all shadow-inner">
+                    <div class="relative w-full">
+                        <input type="password" id="adminPassInput" placeholder="Senha Mestra" class="w-full bg-[#0B0F19] border border-slate-700/50 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all shadow-inner">
+                        <button onclick="togglePasswordVisibility()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+                            <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </button>
+                    </div>
+                    <button onclick="unlockAppWithAdmin()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] hover:-translate-y-0.5">Entrar no Painel</button>
+                </div>
 
-    function adicionarVideoUI(title, stream, isLocal, id = 'local') {
-      noStream.style.display = 'none';
-      if (document.getElementById(`video-${id}`)) return;
-      const container = document.createElement('div');
-      container.id = `video-${id}`;
-      container.className = 'relative w-full h-full bg-black rounded-lg overflow-hidden flex items-center justify-center border border-[#222327] shadow-lg';
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.playsInline = true;
-      if (!isLocal) video.controls = true;
-      if (isLocal) video.muted = true;
-      video.className = 'w-full h-full object-contain';
-      const label = document.createElement('div');
-      label.className = 'absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded backdrop-blur font-medium';
-      label.innerText = title;
-      container.appendChild(video);
-      container.appendChild(label);
-      videoGrid.appendChild(container);
-      atualizarLayoutGrade();
-    }
+                <div id="accessError" class="text-red-400 text-sm font-bold mt-5 hidden bg-red-500/10 py-2 px-4 rounded-lg border border-red-500/20 w-full text-center">Credenciais incorretas!</div>
+            </div>
+        </div>
+    </div>
 
-    function atualizarLayoutGrade() {
-      const telas = videoGrid.children.length;
-      if (telas === 0) {
-        noStream.style.display = 'flex';
-        videoGrid.className = 'w-full h-full grid gap-4 items-center justify-center auto-rows-fr';
-      } else if (telas === 1) {
-        videoGrid.className = 'w-full h-full grid grid-cols-1 gap-4 items-center justify-center auto-rows-fr';
-      } else if (telas === 2) {
-        videoGrid.className = 'w-full h-full grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-center auto-rows-fr';
-      } else {
-        videoGrid.className = 'w-full h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-center justify-center auto-rows-fr';
-      }
-    }
-  </script>
+    <div id="editPriceModal" class="fixed inset-0 bg-[#0B0F19]/90 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="glass-panel p-8 rounded-3xl max-w-sm w-full relative border-t-4 border-t-yellow-500">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500">✏️</div>
+                <h3 class="text-xl font-black text-white">Editar Preço</h3>
+            </div>
+            <p id="editPriceDesc" class="text-sm text-slate-400 mb-6 font-medium">Defina o preço manualmente</p>
+            
+            <div class="relative mb-6">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 font-bold">🥈</div>
+                <input type="text" id="editPriceInput" placeholder="Ex: 150" oninput="formatCurrencyInput(this)" class="w-full bg-[#0B0F19] border border-slate-600 text-white font-black rounded-xl pl-10 pr-4 py-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-xl shadow-inner transition-all">
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl transition-colors">Cancelar</button>
+                <button onclick="saveEditModal()" class="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-900 font-black py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:-translate-y-0.5">Salvar</button>
+            </div>
+            <input type="hidden" id="editPriceItemId">
+            <input type="hidden" id="editPriceCity">
+        </div>
+    </div>
+
+    <div id="mainApp" class="w-full max-w-[1400px] hidden opacity-0 transition-opacity duration-700">
+        
+        <!-- HEADER V3 -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 glass-panel p-6 rounded-3xl">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight">Albion Trader <span class="text-blue-500">Pro</span></h1>
+                    <p class="text-sm text-slate-400 font-medium tracking-wide">Market Intelligence & Crafting Tool</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 bg-[#0B0F19] px-5 py-3 rounded-2xl border border-slate-700/50 shadow-inner">
+                <div class="flex items-center gap-2">
+                    <div id="apiStatusDot" class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse"></div>
+                    <span id="apiStatusText" class="text-xs font-bold text-yellow-500 uppercase tracking-widest">Conectando...</span>
+                </div>
+                <div class="w-px h-6 bg-slate-700"></div>
+                <select id="serverSelect" class="bg-[#151C2C] hover:bg-slate-800 text-sm font-bold text-white focus:outline-none cursor-pointer border border-slate-700 rounded-lg pl-3 pr-8 py-2 transition-all shadow-sm">
+                    <option value="west">Americas (West)</option>
+                    <option value="east">Asia (East)</option>
+                    <option value="europe">Europe</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- ABAS V3 (Estilo Pílula) -->
+        <div class="flex gap-3 overflow-x-auto hide-scrollbar mb-8 bg-[#151C2C] p-2 rounded-2xl border border-slate-800">
+            <button id="tab-craft" onclick="changeTab('craft')" class="flex-1 py-3 px-5 rounded-xl text-white font-bold bg-gradient-to-r from-yellow-600 to-orange-600 shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                <span>📦</span> Materiais Básicos
+            </button>
+            <button id="tab-blackmarket" onclick="changeTab('blackmarket')" class="flex-1 py-3 px-5 rounded-xl text-slate-400 font-semibold hover:bg-slate-800/50 hover:text-white transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                <span>🗡️</span> Mercado Negro
+            </button>
+            <button id="tab-calculator" onclick="changeTab('calculator')" class="flex-1 py-3 px-5 rounded-xl text-slate-400 font-semibold hover:bg-slate-800/50 hover:text-white transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                <span>📈</span> Top Investimentos
+            </button>
+            <button id="tab-simulator" onclick="changeTab('simulator')" class="flex-1 py-3 px-5 rounded-xl text-slate-400 font-semibold hover:bg-slate-800/50 hover:text-white transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                <span>⚙️</span> Simulador Craft
+            </button>
+        </div>
+
+        <div id="content-craft" class="glass-panel p-6 rounded-3xl shadow-2xl transition-all duration-300">
+            <div class="flex flex-wrap gap-4 mb-6 glass-card p-4 rounded-2xl">
+                <div class="flex flex-col flex-1 min-w-[120px]">
+                    <label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Tier</label>
+                    <select id="craftTierSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 block p-3 transition-all"><option value="T4">Tier 4 (Adepto)</option><option value="T5">Tier 5 (Perito)</option><option value="T6">Tier 6 (Mestre)</option><option value="T7">Tier 7 (G-Mestre)</option><option value="T8">Tier 8 (Ancião)</option></select>
+                </div>
+                <div class="flex flex-col flex-1 min-w-[140px]">
+                    <label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Encantamento</label>
+                    <select id="craftEnchantSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 block p-3 transition-all"><option value="">.0 (Normal)</option><option value="_LEVEL1@1">.1 (Incomum)</option><option value="_LEVEL2@2">.2 (Raro)</option><option value="_LEVEL3@3">.3 (Excepcional)</option><option value="_LEVEL4@4">.4 (Prístino)</option></select>
+                </div>
+                <div class="flex flex-col flex-1 min-w-[200px]">
+                    <label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Estratégia de Preço</label>
+                    <select id="priceTypeSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 block p-3 transition-all"><option value="sell_price_min">Menor Preço de Venda (Comprar)</option><option value="buy_price_max">Maior Pedido de Compra (Vender)</option></select>
+                </div>
+                <div class="flex items-end ml-auto mt-2 md:mt-0">
+                    <button onclick="fetchCraftData()" class="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-900 font-black rounded-xl px-8 py-3 transition-all shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:shadow-[0_0_25px_rgba(234,179,8,0.5)] hover:-translate-y-0.5 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        Buscar Dados
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto rounded-2xl border border-slate-700/50 shadow-inner bg-[#0B0F19]/50">
+                <table class="w-full text-sm text-left min-w-[900px] border-collapse">
+                    <thead class="text-[10px] uppercase tracking-widest bg-slate-900/80 border-b border-slate-700/50">
+                        <tr>
+                            <th class="px-5 py-4 font-bold text-slate-400 border-r border-slate-700/30">Material</th>
+                            <th class="px-3 py-4 text-center font-black text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.3)] border-r border-slate-700/30">Caerleon</th>
+                            <th class="px-3 py-4 text-center font-black text-orange-400 drop-shadow-[0_0_5px_rgba(251,146,60,0.3)] border-r border-slate-700/30">Bridgewatch</th>
+                            <th class="px-3 py-4 text-center font-black text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.3)] border-r border-slate-700/30">Martlock</th>
+                            <th class="px-3 py-4 text-center font-black text-purple-400 drop-shadow-[0_0_5px_rgba(192,132,252,0.3)] border-r border-slate-700/30">Thetford</th>
+                            <th class="px-3 py-4 text-center font-black text-slate-200 drop-shadow-[0_0_5px_rgba(226,232,240,0.3)] border-r border-slate-700/30">Fort Sterling</th>
+                            <th class="px-3 py-4 text-center font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]">Lymhurst</th>
+                        </tr>
+                    </thead>
+                    <tbody id="craftTableBody" class="divide-y divide-slate-700/30">
+                        <tr><td colspan="7" class="p-12 text-center text-slate-500 font-medium">Selecione as opções acima e clique em buscar.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="content-blackmarket" class="glass-panel p-6 rounded-3xl hidden shadow-2xl transition-all duration-300">
+            <div class="flex flex-wrap gap-4 mb-6 glass-card p-4 rounded-2xl relative z-10">
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Tier</label><select id="bmTierSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-purple-500/50 block p-3"><option value="T4">Tier 4</option><option value="T5">Tier 5</option><option value="T6">Tier 6</option><option value="T7">Tier 7</option><option value="T8">Tier 8</option></select></div>
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Encantamento</label><select id="bmEnchantSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-purple-500/50 block p-3"><option value="">.0 (Normal)</option><option value="@1">.1 (Incomum)</option><option value="@2">.2 (Raro)</option><option value="@3">.3 (Excepcional)</option><option value="@4">.4 (Prístino)</option></select></div>
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Qualidade</label><select id="bmQualitySelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-purple-500/50 block p-3"><option value="1">Normal (Q1)</option><option value="2">Bom (Q2)</option><option value="3">Excepcional (Q3)</option><option value="4">Excelente (Q4)</option><option value="5">Obra-prima (Q5)</option></select></div>
+                <div class="flex flex-col min-w-[150px]"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Categoria</label><select id="bmCategorySelect" onchange="handleCategoryChange('bm')" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-purple-500/50 block p-3"><option value="all">📁 Todos os Itens</option><option value="weapon">⚔️ Armas</option><option value="chest">🛡️ Peitorais</option><option value="head">🪖 Capacetes</option><option value="shoes">🥾 Calçados</option><option value="capes">🧥 Capas</option><option value="bag">🎒 Bolsas</option></select></div>
+                <div id="bmWeaponFilterContainer" class="flex flex-col min-w-[150px] hidden"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Tipo de Arma</label><select id="bmWeaponTypeSelect" onchange="filterBmTable()" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-purple-500/50 block p-3"><option value="all">⚔️ Todas as Armas</option><option value="warrior">🛡️ Guerreiro (Corpo a Corpo)</option><option value="hunter">🏹 Caçador (Dist. / Agilidade)</option><option value="mage">🪄 Mago (Cajados)</option><option value="offhand">🔰 Secundárias (Off-hands)</option></select></div>
+                <div class="flex flex-col min-w-[150px]"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Método de Craft</label><select id="bmCraftMethod" onchange="filterBmTable()" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-purple-500/50 block p-3"><option value="raw">🧵 Materiais Brutos</option><option value="flat">🧥 Comprar Capa/Item Pronto</option></select></div>
+                <div class="flex items-end ml-auto mt-2 md:mt-0"><button onclick="fetchBlackMarketData()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black rounded-xl px-8 py-3 transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(168,85,247,0.5)] hover:-translate-y-0.5 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>Analisar Lucros</button></div>
+            </div>
+            
+            <div class="overflow-x-auto rounded-2xl border border-slate-700/50 shadow-inner bg-[#0B0F19]/50">
+                <table class="w-full text-sm text-left min-w-[1000px] border-collapse">
+                    <thead class="text-[10px] uppercase tracking-widest bg-slate-900/80 text-slate-400 border-b border-slate-700/50">
+                        <tr>
+                            <th class="px-5 py-4 font-bold w-1/4">Equipamento</th>
+                            <th class="px-5 py-4 font-bold w-1/3 text-center">Custo de Fabricação (Mais Barato)</th>
+                            <th class="px-5 py-4 font-bold w-1/5 text-center">Venda (Mercado Negro)</th>
+                            <th class="px-5 py-4 font-bold text-center">Lucro Estimado (1 un)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bmTableBody" class="divide-y divide-slate-700/30">
+                        <tr><td colspan="4" class="p-12 text-center text-slate-500 font-medium">Preencha os filtros e clique em Analisar Lucros.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="content-calculator" class="glass-panel p-6 rounded-3xl hidden shadow-2xl transition-all duration-300">
+            <div class="flex flex-wrap gap-4 mb-5 glass-card p-4 rounded-2xl">
+                <div class="flex flex-col flex-1 min-w-[220px]">
+                    <label class="text-[10px] uppercase font-bold text-blue-400 mb-1.5 ml-1 tracking-wider">Orçamento Total (Prata)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 font-bold">🥈</div>
+                        <input type="text" id="calcBudget" oninput="formatCurrencyInput(this)" placeholder="Ex: 10.000.000" class="w-full bg-[#0B0F19] border border-blue-500/50 text-white font-black text-base rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 block pl-10 p-3 shadow-inner transition-all">
+                    </div>
+                </div>
+                <div class="flex flex-col w-28">
+                    <label class="text-[10px] uppercase font-bold text-emerald-400 mb-1.5 ml-1 tracking-wider text-center">RRR (%)</label>
+                    <input type="number" id="calcRRR" placeholder="0" min="0" max="100" step="0.1" class="w-full bg-[#0B0F19] border border-emerald-500/50 text-emerald-300 font-black text-base rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 block p-3 text-center shadow-inner transition-all">
+                </div>
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Método de Craft</label><select id="calcCraftMethod" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-blue-500/50 block p-3"><option value="raw">🧵 Materiais Brutos</option><option value="flat">🧥 Comprar Capa/Item Pronto</option></select></div>
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Tier</label><select id="calcTierSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-blue-500/50 block p-3"><option value="T4">Tier 4</option><option value="T5">Tier 5</option><option value="T6">Tier 6</option><option value="T7">Tier 7</option><option value="T8">Tier 8</option></select></div>
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Enchant</label><select id="calcEnchantSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-blue-500/50 block p-3"><option value="">.0</option><option value="@1">.1</option><option value="@2">.2</option><option value="@3">.3</option><option value="@4">.4</option></select></div>
+                <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Qualidade</label><select id="calcQualitySelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-blue-500/50 block p-3"><option value="1">Normal (Q1)</option><option value="2">Bom (Q2)</option><option value="3">Exc. (Q3)</option><option value="4">Excel. (Q4)</option><option value="5">Obra (Q5)</option></select></div>
+            </div>
+            
+            <button onclick="fetchCalculatorData()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-2xl px-6 py-4 mb-8 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] flex items-center justify-center gap-3 text-lg hover:-translate-y-0.5">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Analisar Oportunidades
+            </button>
+            
+            <div class="overflow-x-auto rounded-2xl border border-slate-700/50 shadow-inner bg-[#0B0F19]/50">
+                <table class="w-full text-sm text-left min-w-[900px] border-collapse">
+                    <thead class="text-[10px] uppercase tracking-widest bg-slate-900/80 text-slate-400 border-b border-slate-700/50">
+                        <tr>
+                            <th class="px-5 py-4 font-bold w-1/3">Equipamento</th>
+                            <th class="px-5 py-4 font-bold w-1/3">Análise Unitária</th>
+                            <th class="px-5 py-4 font-bold text-center">Projeção Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calcTableBody" class="divide-y divide-slate-700/30">
+                        <tr><td colspan="3" class="p-12 text-center text-slate-500 font-medium">Preencha seu orçamento e clique em Analisar.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="content-simulator" class="glass-panel p-6 rounded-3xl hidden shadow-2xl relative overflow-hidden transition-all duration-300">
+            <div id="sim-selection-screen">
+                <div class="flex flex-wrap gap-4 mb-6 glass-card p-4 rounded-2xl relative z-10">
+                    <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Tier</label><select id="simTierSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-emerald-500/50 block p-3"><option value="T4">Tier 4</option><option value="T5">Tier 5</option><option value="T6">Tier 6</option><option value="T7">Tier 7</option><option value="T8">Tier 8</option></select></div>
+                    <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Encantamento</label><select id="simEnchantSelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-emerald-500/50 block p-3"><option value="">.0 (Normal)</option><option value="@1">.1 (Incomum)</option><option value="@2">.2 (Raro)</option><option value="@3">.3 (Excepcional)</option><option value="@4">.4 (Prístino)</option></select></div>
+                    <div class="flex flex-col"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Qualidade</label><select id="simQualitySelect" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-emerald-500/50 block p-3"><option value="1">Normal (Q1)</option><option value="2">Bom (Q2)</option><option value="3">Excepcional (Q3)</option><option value="4">Excelente (Q4)</option><option value="5">Obra-prima (Q5)</option></select></div>
+                    <div class="flex flex-col min-w-[150px]"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Categoria</label><select id="simCategorySelect" onchange="handleCategoryChange('sim')" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-emerald-500/50 block p-3"><option value="all">📁 Todos os Itens</option><option value="weapon">⚔️ Armas</option><option value="chest">🛡️ Peitorais</option><option value="head">🪖 Capacetes</option><option value="shoes">🥾 Calçados</option><option value="capes">🧥 Capas</option><option value="bag">🎒 Bolsas</option></select></div>
+                    <div id="simWeaponFilterContainer" class="flex flex-col min-w-[150px] hidden"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Tipo de Arma</label><select id="simWeaponTypeSelect" onchange="renderSimulatorSelection()" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-emerald-500/50 block p-3"><option value="all">⚔️ Todas as Armas</option><option value="warrior">🛡️ Guerreiro (Corpo a Corpo)</option><option value="hunter">🏹 Caçador (Dist. / Agilidade)</option><option value="mage">🪄 Mago (Cajados)</option><option value="offhand">🔰 Secundárias (Off-hands)</option></select></div>
+                    <div class="flex flex-col min-w-[150px]"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 ml-1 tracking-wider">Método de Craft</label><select id="simCraftMethod" onchange="if(!document.getElementById('sim-editor-screen').classList.contains('hidden')) openSimulatorEditor(currentSimulatorRecipe.id);" class="bg-[#0B0F19] border border-slate-700 text-white text-sm font-semibold rounded-xl focus:ring-2 focus:ring-emerald-500/50 block p-3"><option value="raw">🧵 Materiais Brutos</option><option value="flat">🧥 Comprar Capa/Item Pronto</option></select></div>
+                    <div class="flex items-end ml-auto mt-2 md:mt-0"><button onclick="fetchSimulatorData()" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black rounded-xl px-8 py-3 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5">Carregar Base de Dados</button></div>
+                </div>
+                
+                <div id="sim-items-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <div class="col-span-full text-center p-12 text-slate-500 font-medium">Clique em Carregar para visualizar os itens.</div>
+                </div>
+            </div>
+
+            <div id="sim-editor-screen" class="hidden flex-col gap-6">
+                <button onclick="closeSimulatorEditor()" class="text-slate-400 hover:text-white font-bold text-sm flex items-center gap-2 w-max bg-slate-800/50 px-4 py-2 rounded-lg transition-colors border border-slate-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>Voltar para Galeria</button>
+                
+                <div class="flex flex-wrap md:flex-nowrap items-center justify-between glass-card p-5 rounded-2xl gap-4">
+                    <div class="flex items-center gap-5">
+                        <div class="relative group">
+                            <div class="absolute -inset-1 bg-emerald-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+                            <img id="sim-item-icon" src="" class="w-20 h-20 bg-[#0B0F19] rounded-2xl border border-slate-600 p-2 relative shadow-xl">
+                        </div>
+                        <div><h2 id="sim-item-name" class="text-2xl font-black text-white tracking-tight">Nome</h2><span id="sim-item-tier" class="text-sm px-2 py-0.5 bg-emerald-900/50 text-emerald-400 border border-emerald-500/50 rounded-md font-bold mt-1 block w-max">T4.0</span></div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex flex-col w-32"><label class="text-[10px] uppercase font-bold text-emerald-400 mb-1.5 text-center tracking-wider">Retorno (RRR %)</label><input type="number" id="sim-input-rrr" value="0" min="0" max="100" step="0.1" oninput="recalculateSimulator()" class="w-full bg-[#0B0F19] border border-emerald-500/50 text-emerald-300 font-black text-lg text-center rounded-xl px-3 py-3 outline-none focus:ring-1 focus:ring-emerald-500 shadow-inner"></div>
+                        <div class="flex flex-col w-32"><label class="text-[10px] uppercase font-bold text-slate-400 mb-1.5 text-center tracking-wider">Qtd. Fabricar</label><input type="number" id="sim-input-qty" value="1" min="1" oninput="recalculateSimulator()" class="w-full bg-[#0B0F19] border border-slate-600 text-white font-black text-lg text-center rounded-xl px-3 py-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
+                    <div class="glass-card p-6 rounded-3xl">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-white">1</span> Edite os Custos (1x)</h3>
+                        <div id="sim-mats-container" class="flex flex-col gap-3"></div>
+                    </div>
+                    <div class="flex flex-col gap-6">
+                        <div class="glass-card p-6 rounded-3xl border-t-2 border-t-purple-500">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-purple-900/50 text-purple-400 flex items-center justify-center">2</span> Venda no Mercado Negro (1x)</h3>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 font-bold">🥈</div>
+                                <input type="text" id="sim-input-sell" oninput="formatCurrencyInput(this); recalculateSimulator()" class="w-full bg-[#0B0F19] border border-purple-500/50 text-white font-black text-2xl rounded-xl focus:ring-1 focus:ring-purple-500 focus:border-purple-500 block pl-12 p-4 shadow-inner">
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-3 font-medium">* A calculadora já desconta a taxa de 4% (com premium) na venda.</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-b from-slate-900 to-[#0B0F19] border border-slate-700/80 p-6 rounded-3xl flex-1 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                            <div class="absolute -right-10 -top-10 w-32 h-32 bg-blue-500 rounded-full blur-[80px] opacity-10"></div>
+                            <div>
+                                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center mb-6">Projeção Final da Operação</h3>
+                                <div class="flex justify-between items-center mb-3"><span class="text-sm font-medium text-slate-400">Custo Base (Cheio):</span><span id="sim-res-cost" class="font-bold text-red-400">0 🥈</span></div>
+                                <div class="flex justify-between items-center mb-3"><span class="text-sm font-bold text-emerald-400">Recursos Salvos (RRR):</span><span id="sim-res-saved" class="font-bold text-emerald-400">+0 🥈</span></div>
+                                <div class="flex justify-between items-center mb-5 pt-3 border-t border-slate-800/50"><span class="text-sm font-medium text-slate-300">Receita Líquida Total:</span><span id="sim-res-revenue" class="font-bold text-blue-400">0 🥈</span></div>
+                                <div id="sim-res-items-badges" class="flex flex-wrap gap-2 mb-4 justify-center bg-[#0B0F19]/50 p-3 rounded-xl border border-slate-800/50 min-h-[60px]"></div>
+                            </div>
+                            <div class="text-center mt-4 bg-[#0B0F19] p-4 rounded-2xl border border-slate-800 shadow-inner">
+                                <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1">Lucro Líquido Final</span>
+                                <div id="sim-res-profit" class="text-4xl font-black text-white tracking-tight">0 <span class="text-2xl text-slate-500">🥈</span></div>
+                                <div id="sim-res-margin" class="text-sm font-bold text-slate-500 mt-2">0% Margem</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const CIDADES = ["Caerleon", "Bridgewatch", "Martlock", "Thetford", "Fort Sterling", "Lymhurst"];
+
+        const RECEITAS_BM = [
+            { id: "BAG", nome: "Bolsa", cat: "bag", mats: { "CLOTH": 8, "LEATHER": 8 } },
+            { id: "CAPE", nome: "Capa Simples", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4 } },
+            { id: "CAPEITEM_FW_LYMHURST", nome: "Capa Lymhurst", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_LYMHURST_BP": 1, "T1_FACTION_FOREST_TOKEN_1": 1 } },
+            { id: "CAPEITEM_FW_BRIDGEWATCH", nome: "Capa Bridgewatch", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_BRIDGEWATCH_BP": 1, "T1_FACTION_STEPPE_TOKEN_1": 1 } },
+            { id: "CAPEITEM_FW_MARTLOCK", nome: "Capa Martlock", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_MARTLOCK_BP": 1, "T1_FACTION_HIGHLAND_TOKEN_1": 1 } },
+            { id: "CAPEITEM_FW_THETFORD", nome: "Capa Thetford", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_THETFORD_BP": 1, "T1_FACTION_SWAMP_TOKEN_1": 1 } },
+            { id: "CAPEITEM_FW_FORTSTERLING", nome: "Capa F. Sterling", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_FORTSTERLING_BP": 1, "T1_FACTION_MOUNTAIN_TOKEN_1": 1 } },
+            { id: "CAPEITEM_FW_CAERLEON", nome: "Capa Caerleon", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_CAERLEON_BP": 1, "T1_FACTION_CAERLEON_TOKEN_1": 1 } },
+            { id: "CAPEITEM_FW_BRECILIEN", nome: "Capa Brecilien", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_FW_BRECILIEN_BP": 1, "T1_FACTION_BRECILIEN_TOKEN_1": 1 } },
+            { id: "CAPEITEM_AVALON", nome: "Capa Avaloniana", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_AVALON_BP": 1, "QUESTITEM_TOKEN_AVALON": "aval_energy" } },
+            { id: "CAPEITEM_HERETIC", nome: "Capa Herege", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_HERETIC_BP": 1, "T1_FACTION_SWAMP_TOKEN_1": 1 } },
+            { id: "CAPEITEM_UNDEAD", nome: "Capa M-Vivos", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_UNDEAD_BP": 1, "T1_FACTION_CAERLEON_TOKEN_1": 1 } },
+            { id: "CAPEITEM_KEEPER", nome: "Capa Protetor", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_KEEPER_BP": 1, "T1_FACTION_HIGHLAND_TOKEN_1": 1 } },
+            { id: "CAPEITEM_MORGANA", nome: "Capa Morgana", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_MORGANA_BP": 1, "T1_FACTION_STEPPE_TOKEN_1": 1 } },
+            { id: "CAPEITEM_DEMON", nome: "Capa Demoníaca", cat: "capes", mats: { "CLOTH": 4, "LEATHER": 4, "CAPEITEM_DEMON_BP": 1, "T1_FACTION_MOUNTAIN_TOKEN_1": 1 } },
+            { id: "HEAD_CLOTH_SET1", nome: "Capuz Erudito", cat: "head", mats: { "CLOTH": 8 } },
+            { id: "HEAD_CLOTH_SET2", nome: "Capuz Clérigo", cat: "head", mats: { "CLOTH": 8 } },
+            { id: "HEAD_CLOTH_SET3", nome: "Capuz Mago", cat: "head", mats: { "CLOTH": 8 } },
+            { id: "HEAD_LEATHER_SET1", nome: "Capuz Mercenário", cat: "head", mats: { "LEATHER": 8 } },
+            { id: "HEAD_LEATHER_SET2", nome: "Capuz Caçador", cat: "head", mats: { "LEATHER": 8 } },
+            { id: "HEAD_LEATHER_SET3", nome: "Capuz Assassino", cat: "head", mats: { "LEATHER": 8 } },
+            { id: "HEAD_PLATE_SET1", nome: "Elmo Soldado", cat: "head", mats: { "METALBAR": 8 } },
+            { id: "HEAD_PLATE_SET2", nome: "Elmo Cavaleiro", cat: "head", mats: { "METALBAR": 8 } },
+            { id: "HEAD_PLATE_SET3", nome: "Elmo Guardião", cat: "head", mats: { "METALBAR": 8 } },
+            { id: "HEAD_CLOTH_ROYAL", nome: "Capuz Real", cat: "head", mats: { "CLOTH": 8, "QUESTITEM_TOKEN_ROYAL": "sigil_head_shoes" } },
+            { id: "HEAD_LEATHER_ROYAL", nome: "Capuz Real Couro", cat: "head", mats: { "LEATHER": 8, "QUESTITEM_TOKEN_ROYAL": "sigil_head_shoes" } },
+            { id: "HEAD_PLATE_ROYAL", nome: "Elmo Real", cat: "head", mats: { "METALBAR": 8, "QUESTITEM_TOKEN_ROYAL": "sigil_head_shoes" } },
+            { id: "ARMOR_CLOTH_SET1", nome: "Hábito Erudito", cat: "chest", mats: { "CLOTH": 16 } },
+            { id: "ARMOR_CLOTH_SET2", nome: "Hábito Clérigo", cat: "chest", mats: { "CLOTH": 16 } },
+            { id: "ARMOR_CLOTH_SET3", nome: "Hábito Mago", cat: "chest", mats: { "CLOTH": 16 } },
+            { id: "ARMOR_LEATHER_SET1", nome: "Casaco Mercenário", cat: "chest", mats: { "LEATHER": 16 } },
+            { id: "ARMOR_LEATHER_SET2", nome: "Casaco Caçador", cat: "chest", mats: { "LEATHER": 16 } },
+            { id: "ARMOR_LEATHER_SET3", nome: "Casaco Assassino", cat: "chest", mats: { "LEATHER": 16 } },
+            { id: "ARMOR_PLATE_SET1", nome: "Armadura Soldado", cat: "chest", mats: { "METALBAR": 16 } },
+            { id: "ARMOR_PLATE_SET2", nome: "Armadura Cavaleiro", cat: "chest", mats: { "METALBAR": 16 } },
+            { id: "ARMOR_PLATE_SET3", nome: "Armadura Guardião", cat: "chest", mats: { "METALBAR": 16 } },
+            { id: "ARMOR_CLOTH_ROYAL", nome: "Hábito Real", cat: "chest", mats: { "CLOTH": 16, "QUESTITEM_TOKEN_ROYAL": "sigil_chest" } },
+            { id: "ARMOR_LEATHER_ROYAL", nome: "Casaco Real", cat: "chest", mats: { "LEATHER": 16, "QUESTITEM_TOKEN_ROYAL": "sigil_chest" } },
+            { id: "ARMOR_PLATE_ROYAL", nome: "Armadura Real", cat: "chest", mats: { "METALBAR": 16, "QUESTITEM_TOKEN_ROYAL": "sigil_chest" } },
+            { id: "SHOES_CLOTH_SET1", nome: "Sandálias Erudito", cat: "shoes", mats: { "CLOTH": 8 } },
+            { id: "SHOES_CLOTH_SET2", nome: "Sandálias Clérigo", cat: "shoes", mats: { "CLOTH": 8 } },
+            { id: "SHOES_CLOTH_SET3", nome: "Sandálias Mago", cat: "shoes", mats: { "CLOTH": 8 } },
+            { id: "SHOES_LEATHER_SET1", nome: "Sapatos Mercenário", cat: "shoes", mats: { "LEATHER": 8 } },
+            { id: "SHOES_LEATHER_SET2", nome: "Sapatos Caçador", cat: "shoes", mats: { "LEATHER": 8 } },
+            { id: "SHOES_LEATHER_SET3", nome: "Sapatos Assassino", cat: "shoes", mats: { "LEATHER": 8 } },
+            { id: "SHOES_PLATE_SET1", nome: "Botas Soldado", cat: "shoes", mats: { "METALBAR": 8 } },
+            { id: "SHOES_PLATE_SET2", nome: "Botas Cavaleiro", cat: "shoes", mats: { "METALBAR": 8 } },
+            { id: "SHOES_PLATE_SET3", nome: "Botas Guardião", cat: "shoes", mats: { "METALBAR": 8 } },
+            { id: "SHOES_CLOTH_ROYAL", nome: "Sandálias Reais", cat: "shoes", mats: { "CLOTH": 8, "QUESTITEM_TOKEN_ROYAL": "sigil_head_shoes" } },
+            { id: "SHOES_LEATHER_ROYAL", nome: "Sapatos Reais", cat: "shoes", mats: { "LEATHER": 8, "QUESTITEM_TOKEN_ROYAL": "sigil_head_shoes" } },
+            { id: "SHOES_PLATE_ROYAL", nome: "Botas Reais", cat: "shoes", mats: { "METALBAR": 8, "QUESTITEM_TOKEN_ROYAL": "sigil_head_shoes" } },
+            
+            // --- ARMAS DE GUERREIRO (WARRIOR) ---
+            { id: "MAIN_SWORD", nome: "Espada Larga", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 16, "LEATHER": 8 } },
+            { id: "2H_CLAYMORE", nome: "Montante", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "LEATHER": 12 } },
+            { id: "2H_DUALSWORD", nome: "Espadas Duplas", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "LEATHER": 12 } },
+            
+            { id: "MAIN_AXE", nome: "Machado Batalha", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 16, "PLANKS": 8 } },
+            { id: "2H_HALBERD", nome: "Alabarda", cat: "weapon", subcat: "warrior", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_AXE", nome: "Machadão", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12 } },
+            
+            { id: "MAIN_MACE", nome: "Maça", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 16, "CLOTH": 8 } },
+            { id: "2H_MACE", nome: "Maça Pesada", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "CLOTH": 12 } },
+            { id: "2H_FLAIL", nome: "Mangual", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "CLOTH": 12 } },
+            
+            { id: "MAIN_HAMMER", nome: "Martelo de Batalha", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 16, "PLANKS": 8 } },
+            { id: "2H_POLEHAMMER", nome: "Martelo de Polo", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12 } },
+            { id: "2H_HAMMER", nome: "Grande Martelo", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12 } },
+            
+            { id: "2H_KNUCKLES_SET1", nome: "Luvas de Lutador", cat: "weapon", subcat: "warrior", mats: { "LEATHER": 20, "METALBAR": 12 } },
+            { id: "2H_KNUCKLES_SET2", nome: "Braçadeiras Bat.", cat: "weapon", subcat: "warrior", mats: { "LEATHER": 20, "METALBAR": 12 } },
+            { id: "2H_KNUCKLES_SET3", nome: "Manoplas Esmag.", cat: "weapon", subcat: "warrior", mats: { "LEATHER": 20, "METALBAR": 12 } },
+            
+            // --- ARMAS DE CAÇADOR (HUNTER) ---
+            { id: "2H_BOW", nome: "Arco Simples", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32 } },
+            { id: "2H_WARBOW", nome: "Arco de Guerra", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32 } },
+            { id: "2H_LONGBOW", nome: "Arco Longo", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32 } },
+            
+            { id: "MAIN_SPEAR", nome: "Lança", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 16, "METALBAR": 8 } },
+            { id: "2H_SPEAR", nome: "Pique", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_GLAIVE", nome: "Glaive", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            
+            { id: "MAIN_DAGGER", nome: "Adaga", cat: "weapon", subcat: "hunter", mats: { "LEATHER": 16, "METALBAR": 8 } },
+            { id: "2H_DAGGERPAIR", nome: "Adagas Duplas", cat: "weapon", subcat: "hunter", mats: { "LEATHER": 20, "METALBAR": 12 } },
+            { id: "2H_CLAW", nome: "Garras", cat: "weapon", subcat: "hunter", mats: { "LEATHER": 20, "METALBAR": 12 } },
+            
+            { id: "MAIN_1HCROSSBOW", nome: "Besta Leve", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 16, "METALBAR": 8 } },
+            { id: "2H_CROSSBOW", nome: "Besta", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_CROSSBOWLARGE", nome: "Besta Pesada", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            
+            { id: "2H_QUARTERSTAFF", nome: "Bordão", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "LEATHER": 12 } },
+            { id: "2H_TWINSCYTHE", nome: "Guisarme", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "LEATHER": 12 } },
+            { id: "2H_DOUBLEBLADEDSTAFF", nome: "Caj. Dupla Lâmina", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "LEATHER": 12 } },
+
+            // --- ARMAS DE MAGO (MAGE) ---
+            { id: "MAIN_FIRESTAFF", nome: "Cajado Fogo", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8 } },
+            { id: "2H_FIRESTAFF", nome: "Cajado Fogo Maior", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_INFERNOSTAFF", nome: "Cajado Infernal", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            
+            { id: "MAIN_HOLYSTAFF", nome: "Cajado Sagrado", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "CLOTH": 8 } },
+            { id: "2H_HOLYSTAFF", nome: "Caj. Sagrado Maior", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "CLOTH": 12 } },
+            { id: "2H_DIVINESTAFF", nome: "Cajado Divino", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "CLOTH": 12 } },
+            
+            { id: "MAIN_ARCANESTAFF", nome: "Cajado Arcano", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8 } },
+            { id: "2H_ARCANESTAFF", nome: "Caj. Arcano Maior", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_ENIGMATICSTAFF", nome: "Cajado Enigmático", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            
+            { id: "MAIN_FROSTSTAFF", nome: "Cajado de Gelo", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8 } },
+            { id: "2H_FROSTSTAFF", nome: "Caj. de Gelo Maior", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_GLACIALSTAFF", nome: "Cajado Glacial", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            
+            { id: "MAIN_CURSEDSTAFF", nome: "Cajado Amaldiçoado", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8 } },
+            { id: "2H_CURSEDSTAFF", nome: "Amaldiçoado Maior", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            { id: "2H_DEMONICSTAFF", nome: "Cajado Demoníaco", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12 } },
+            
+            { id: "MAIN_NATURESTAFF", nome: "Cajado Natureza", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "CLOTH": 8 } },
+            { id: "2H_NATURESTAFF", nome: "Natureza Maior", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "CLOTH": 12 } },
+            { id: "2H_WILDSTAFF", nome: "Cajado Selvagem", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "CLOTH": 12 } },
+
+            { id: "2H_SHAPESHIFTER_SET1", nome: "Caj. Transmorfo", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "LEATHER": 12, "ARTEFACT_2H_SHAPESHIFTER_SET1": 1 } },
+            { id: "2H_SHAPESHIFTER_SET2", nome: "Cajado da Sombras", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "LEATHER": 12, "ARTEFACT_2H_SHAPESHIFTER_SET2": 1 } },
+            { id: "2H_SHAPESHIFTER_SET3", nome: "Cajado Sanguinário", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "LEATHER": 12, "ARTEFACT_2H_SHAPESHIFTER_SET3": 1 } },
+
+            // --- ARMAS DE ARTEFATO (Runa, Alma, Relíquia, Avalon) ---
+            // Guerreiro
+            { id: "MAIN_SCIMITAR", nome: "Lâmina de Clarent", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 16, "LEATHER": 8, "ARTEFACT_MAIN_SCIMITAR": 1 } },
+            { id: "2H_CLEAVER_HELL", nome: "Espada Esculpida", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "LEATHER": 12, "ARTEFACT_2H_CLEAVER_HELL": 1 } },
+            { id: "2H_DUALSCIMITAR_UNDEAD", nome: "Par de Galatinas", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "LEATHER": 12, "ARTEFACT_2H_DUALSCIMITAR_UNDEAD": 1 } },
+            { id: "2H_CLAYMORE_AVALON", nome: "Faz-Reis", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "LEATHER": 12, "ARTEFACT_2H_CLAYMORE_AVALON": 1 } },
+            { id: "2H_HALBERD_MORGANA", nome: "Chama-carniça", cat: "weapon", subcat: "warrior", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_HALBERD_MORGANA": 1 } },
+            { id: "2H_SCYTHE_HELL", nome: "Foice Infernal", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12, "ARTEFACT_2H_SCYTHE_HELL": 1 } },
+            { id: "2H_DUALAXE_KEEPER", nome: "Patas de Urso", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12, "ARTEFACT_2H_DUALAXE_KEEPER": 1 } },
+            { id: "2H_AXE_AVALON", nome: "Racha-Reinos", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12, "ARTEFACT_2H_AXE_AVALON": 1 } },
+            { id: "MAIN_MACE_HELL", nome: "Maça de Íncubo", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 16, "CLOTH": 8, "ARTEFACT_MAIN_MACE_HELL": 1 } },
+            { id: "2H_MACE_MORGANA", nome: "Maça de Camlann", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "CLOTH": 12, "ARTEFACT_2H_MACE_MORGANA": 1 } },
+            { id: "2H_HAMMER_UNDEAD", nome: "Martelo do Túmulo", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12, "ARTEFACT_2H_HAMMER_UNDEAD": 1 } },
+            { id: "2H_RAM_KEEPER", nome: "Guarda-Bosques", cat: "weapon", subcat: "warrior", mats: { "METALBAR": 20, "PLANKS": 12, "ARTEFACT_2H_RAM_KEEPER": 1 } },
+
+            // Caçador
+            { id: "2H_BOW_UNDEAD", nome: "Arco Sussurrante", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32, "ARTEFACT_2H_BOW_UNDEAD": 1 } },
+            { id: "2H_BOW_HELL", nome: "Arco Lamurioso", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32, "ARTEFACT_2H_BOW_HELL": 1 } },
+            { id: "2H_BOW_KEEPER", nome: "Arco de Badon", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32, "ARTEFACT_2H_BOW_KEEPER": 1 } },
+            { id: "2H_BOW_AVALON", nome: "Fura-Brumas", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 32, "ARTEFACT_2H_BOW_AVALON": 1 } },
+            { id: "MAIN_DAGGER_HELL", nome: "Sangra-Letal", cat: "weapon", subcat: "hunter", mats: { "LEATHER": 16, "METALBAR": 8, "ARTEFACT_MAIN_DAGGER_HELL": 1 } },
+            { id: "2H_DAGGER_KEEPER", nome: "Mata-Mortais", cat: "weapon", subcat: "hunter", mats: { "LEATHER": 20, "METALBAR": 12, "ARTEFACT_2H_DAGGER_KEEPER": 1 } },
+            { id: "MAIN_DAGGER_AVALON", nome: "Presas Demoníacas", cat: "weapon", subcat: "hunter", mats: { "LEATHER": 16, "METALBAR": 8, "ARTEFACT_MAIN_DAGGER_AVALON": 1 } },
+            { id: "MAIN_SPEAR_KEEPER", nome: "Lança de Garça", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_SPEAR_KEEPER": 1 } },
+            { id: "2H_HARPOON_HELL", nome: "Caça-Espíritos", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_HARPOON_HELL": 1 } },
+            { id: "2H_DUALCROSSBOW_HELL", nome: "Lança-Virotes", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_DUALCROSSBOW_HELL": 1 } },
+            { id: "2H_CROSSBOWLARGE_MORGANA", nome: "Besta de Cerco", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_CROSSBOWLARGE_MORGANA": 1 } },
+            { id: "2H_QUARTERSTAFF_MORGANA", nome: "Caj. Monge Negro", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "LEATHER": 12, "ARTEFACT_2H_QUARTERSTAFF_MORGANA": 1 } },
+            { id: "2H_TWINSCYTHE_HELL", nome: "Foice das Almas", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "LEATHER": 12, "ARTEFACT_2H_TWINSCYTHE_HELL": 1 } },
+            { id: "2H_QUARTERSTAFF_AVALON", nome: "Buscador do Graal", cat: "weapon", subcat: "hunter", mats: { "PLANKS": 20, "LEATHER": 12, "ARTEFACT_2H_QUARTERSTAFF_AVALON": 1 } },
+
+            // Magos
+            { id: "MAIN_FIRESTAFF_KEEPER", nome: "Fogo Selvagem", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_FIRESTAFF_KEEPER": 1 } },
+            { id: "2H_FIRESTAFF_HELL", nome: "Cajado de Enxofre", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_FIRESTAFF_HELL": 1 } },
+            { id: "2H_FIRESTAFF_AVALON", nome: "Canto da Alvorada", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_FIRESTAFF_AVALON": 1 } },
+            { id: "MAIN_HOLYSTAFF_MORGANA", nome: "Cajado Toque Vital", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "CLOTH": 8, "ARTEFACT_MAIN_HOLYSTAFF_MORGANA": 1 } },
+            { id: "2H_HOLYSTAFF_HELL", nome: "Cajado Caído", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "CLOTH": 12, "ARTEFACT_2H_HOLYSTAFF_HELL": 1 } },
+            { id: "MAIN_HOLYSTAFF_AVALON", nome: "Queda Sagrada", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "CLOTH": 8, "ARTEFACT_MAIN_HOLYSTAFF_AVALON": 1 } },
+            { id: "MAIN_ARCANESTAFF_UNDEAD", nome: "Caj. Bruxaria", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_ARCANESTAFF_UNDEAD": 1 } },
+            { id: "2H_ARCANESTAFF_HELL", nome: "Cajado Oculto", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_ARCANESTAFF_HELL": 1 } },
+            { id: "MAIN_FROSTSTAFF_KEEPER", nome: "Caj. Geada Branca", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_FROSTSTAFF_KEEPER": 1 } },
+            { id: "MAIN_FROSTSTAFF_AVALON", nome: "Uivo Gélido", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_FROSTSTAFF_AVALON": 1 } },
+            { id: "MAIN_CURSEDSTAFF_UNDEAD", nome: "Cajado Praga Vital", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_CURSEDSTAFF_UNDEAD": 1 } },
+            { id: "2H_SKULLORB_HELL", nome: "Crânio Amaldiçoado", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "METALBAR": 12, "ARTEFACT_2H_SKULLORB_HELL": 1 } },
+            { id: "MAIN_CURSEDSTAFF_AVALON", nome: "Chama-Sombras", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "METALBAR": 8, "ARTEFACT_MAIN_CURSEDSTAFF_AVALON": 1 } },
+            { id: "MAIN_NATURESTAFF_KEEPER", nome: "Cajado Druídico", cat: "weapon", subcat: "mage", mats: { "PLANKS": 16, "CLOTH": 8, "ARTEFACT_MAIN_NATURESTAFF_KEEPER": 1 } },
+            { id: "2H_NATURESTAFF_HELL", nome: "Cajado da Praga", cat: "weapon", subcat: "mage", mats: { "PLANKS": 20, "CLOTH": 12, "ARTEFACT_2H_NATURESTAFF_HELL": 1 } },
+
+            // --- SECUNDÁRIAS BASE ---
+            { id: "OFF_SHIELD", nome: "Escudo", cat: "weapon", subcat: "offhand", mats: { "PLANKS": 4, "METALBAR": 4 } },
+            { id: "OFF_TOWERSHIELD", nome: "Escudo Pesaroso", cat: "weapon", subcat: "offhand", mats: { "PLANKS": 4, "METALBAR": 4 } },
+            { id: "OFF_TORCH", nome: "Tocha", cat: "weapon", subcat: "offhand", mats: { "PLANKS": 4, "CLOTH": 4 } },
+            { id: "OFF_HORN", nome: "Berrante", cat: "weapon", subcat: "offhand", mats: { "PLANKS": 4, "LEATHER": 4 } },
+            { id: "OFF_TOME", nome: "Tomo de Feitiços", cat: "weapon", subcat: "offhand", mats: { "CLOTH": 4, "LEATHER": 4 } },
+            { id: "OFF_ORB", nome: "Orbe Misterioso", cat: "weapon", subcat: "offhand", mats: { "CLOTH": 4, "LEATHER": 4 } }
+        ];
+
+        const NOMES_MATERIAIS = {
+            "PLANKS": "Tábuas", "METALBAR": "Barras", "LEATHER": "Couro", "CLOTH": "Tecido",
+            "CAPEITEM_FW_LYMHURST_BP": "Ornam. Lymhurst", "CAPEITEM_FW_BRIDGEWATCH_BP": "Ornam. Bridgewatch",
+            "CAPEITEM_FW_MARTLOCK_BP": "Ornam. Martlock", "CAPEITEM_FW_THETFORD_BP": "Ornam. Thetford",
+            "CAPEITEM_FW_FORTSTERLING_BP": "Ornam. Fort Sterling", "CAPEITEM_FW_CAERLEON_BP": "Ornam. Caerleon",
+            "CAPEITEM_FW_BRECILIEN_BP": "Ornam. Brecilien", "CAPEITEM_AVALON_BP": "Cristal Avaloniano",
+            "CAPEITEM_HERETIC_BP": "Ornam. Herege", "CAPEITEM_UNDEAD_BP": "Ornam. M-Vivos",
+            "CAPEITEM_KEEPER_BP": "Ornam. Protetor", "CAPEITEM_MORGANA_BP": "Ornam. Morgana",
+            "CAPEITEM_DEMON_BP": "Ornam. Demônio",
+            "T1_FACTION_FOREST_TOKEN_1": "Coração Arbóreo", "T1_FACTION_STEPPE_TOKEN_1": "Coração Feroz",
+            "T1_FACTION_HIGHLAND_TOKEN_1": "Coração Empedrado", "T1_FACTION_SWAMP_TOKEN_1": "Coração Videira",
+            "T1_FACTION_MOUNTAIN_TOKEN_1": "Coração Montanhoso", "T1_FACTION_CAERLEON_TOKEN_1": "Coração Sombrio",
+            "T1_FACTION_BRECILIEN_TOKEN_1": "Fogo de Fada",
+            "QUESTITEM_TOKEN_ROYAL": "Selo Real", "QUESTITEM_TOKEN_AVALON": "Energia Avaloniana",
+            "CAPE": "Capa Simples", "HEAD_CLOTH_SET1": "Capuz de Erudito", "ARMOR_CLOTH_SET1": "Hábito de Erudito", "SHOES_CLOTH_SET1": "Sandálias de Erudito",
+            "HEAD_LEATHER_SET1": "Capuz de Mercenário", "ARMOR_LEATHER_SET1": "Casaco de Mercenário", "SHOES_LEATHER_SET1": "Sapatos de Mercenário",
+            "HEAD_PLATE_SET1": "Elmo de Soldado", "ARMOR_PLATE_SET1": "Armadura de Soldado", "SHOES_PLATE_SET1": "Botas de Soldado"
+        };
+
+        const CAPE_TOKEN_REQUIREMENTS = {
+            "T4": { hearts: 1, energy: 15 }, "T5": { hearts: 1, energy: 15 }, "T6": { hearts: 3, energy: 45 }, "T7": { hearts: 5, energy: 75 }, "T8": { hearts: 10, energy: 150 }
+        };
+
+        const CITY_COLORS = {
+            "Caerleon": "text-red-400", "Bridgewatch": "text-orange-400", "Martlock": "text-blue-400", 
+            "Thetford": "text-purple-400", "Fort Sterling": "text-slate-200", "Lymhurst": "text-emerald-400"
+        };
+
+        function getCityColor(cityName) {
+            if(!cityName) return "text-blue-400";
+            for (const [city, color] of Object.entries(CITY_COLORS)) {
+                if (cityName.includes(city)) return color;
+            }
+            return "text-slate-400"; // fallback se for Desconhecido
+        }
+
+        let lastBmApiData = { dataBM: [], dataMats: [], tier: '', enchant: '', quality: '1' };
+        let lastCalcApiData = { dataBM: [], dataMats: [], tier: '', enchant: '', quality: '1' };
+        let lastSimApiData = { dataBM: [], dataMats: [], tier: '', enchant: '', quality: '1' };
+        let lastCraftApiData = null; 
+        let manualPricesOverrides = {}; 
+        let currentSimulatorRecipe = null;
+        let currentSimulatorMats = [];
+
+        // NOVO: CACHE GLOBAL DE PREÇOS
+        // Para garantir que todas as abas enxerguem exatamente a mesma cidade vencedora
+        let globalPrecosVencedores = {};
+
+        // FUNÇÃO UNIVERSAL BLINDADA PARA EXTRAIR O MENOR PREÇO DAS CIDADES
+        function buildPrecoMats(dataMats) {
+            const precoMats = {};
+            
+            // Passo 1: Organizar todos os dados crus que vieram da API separando por item_id e city
+            const dadosOrganizados = {};
+            dataMats.forEach(d => {
+                if (d.sell_price_min > 0) {
+                    if (!dadosOrganizados[d.item_id]) dadosOrganizados[d.item_id] = {};
+                    dadosOrganizados[d.item_id][d.city] = { preco: d.sell_price_min, date: d.sell_price_min_date };
+                }
+            });
+
+            // Passo 2: Varrer CADA ITEM e buscar o menor preço SEGUINDO A ORDEM DA NOSSA ARRAY CIDADES
+            for (const itemId in dadosOrganizados) {
+                let menorPreco = Infinity;
+                let cidadeVencedora = "Desconhecido";
+                let dataVencedora = "";
+
+                // VERIFICAÇÃO SUPREMA: Pega direto da tabela visual "Materiais Básicos" se existir lá!
+                if (globalPrecosVencedores[itemId]) {
+                    menorPreco = globalPrecosVencedores[itemId].preco;
+                    cidadeVencedora = globalPrecosVencedores[itemId].city;
+                    dataVencedora = globalPrecosVencedores[itemId].date;
+                } else {
+                    // Se o usuário não passou na primeira aba, calcula na marra usando a ordem das colunas
+                    CIDADES.forEach(cidade => {
+                        if (dadosOrganizados[itemId][cidade]) {
+                            const precoDaCidade = dadosOrganizados[itemId][cidade].preco;
+                            // Encontra o menor. O "<" garante que o primeiro a aparecer ganha empates.
+                            if (precoDaCidade < menorPreco) {
+                                menorPreco = precoDaCidade;
+                                cidadeVencedora = cidade;
+                                dataVencedora = dadosOrganizados[itemId][cidade].date;
+                            }
+                        }
+                    });
+                }
+
+                if (menorPreco !== Infinity) {
+                    precoMats[itemId] = { preco: menorPreco, city: cidadeVencedora, date: dataVencedora, ts: Date.now() };
+                }
+            }
+
+            // Aplica os preços manuais por cima (Sobrescreve tudo!)
+            for (const itemId in manualPricesOverrides) { 
+                for (const city in manualPricesOverrides[itemId]) { 
+                    const mp = manualPricesOverrides[itemId][city]; 
+                    if (mp > 0 && (!precoMats[itemId] || mp < precoMats[itemId].preco)) {
+                        precoMats[itemId] = { preco: mp, city: city + " (Manual)", date: new Date().toISOString(), ts: Date.now() }; 
+                    } 
+                } 
+            }
+            return precoMats;
+        }
+
+        // LISTA DE CHAVES VÁLIDAS (Edite aqui para adicionar ou remover clientes)
+        const CHAVES_VALIDAS = [
+            "ALBION-VIP-100",
+            "MDK-PREMIUM-2026",
+            "AMIGO-TESTE",
+            "ITALO",
+            "JOSE",
+            "IGOR"
+        ];
+
+        // HASHES SHA-256 DO ADMIN
+        const HASH_EMAIL = CryptoJS.SHA256(atob("YW5vdGhlcnRvMQ==")).toString(); 
+        const HASH_PASS = CryptoJS.SHA256(atob("MDMxMjE5OTc=")).toString();
+
+        const overlay = document.getElementById('accessOverlay');
+        const mainApp = document.getElementById('mainApp');
+        const errorMsg = document.getElementById('accessError');
+        const serverSelect = document.getElementById('serverSelect');
+        const apiStatusDot = document.getElementById('apiStatusDot');
+        const apiStatusText = document.getElementById('apiStatusText');
+
+        function toggleAdminLogin() {
+            document.getElementById('keyForm').classList.add('hidden');
+            document.getElementById('adminForm').classList.remove('hidden');
+            document.getElementById('accessTitle').innerText = "Acesso Desenvolvedor";
+            document.getElementById('accessDesc').innerText = "Insira suas credenciais mestras.";
+        }
+
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('adminPassInput');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>`;
+            } else {
+                passInput.type = 'password';
+                eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
+            }
+        }
+
+        function unlockAppWithKey() {
+            const key = document.getElementById('accessKeyInput').value.trim().toUpperCase();
+            
+            // Verifica se a chave digitada está dentro da Lista VIP (CHAVES_VALIDAS)
+            if(CHAVES_VALIDAS.includes(key)) {
+                if(overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => { if(overlay) overlay.classList.add('hidden'); mainApp.classList.remove('hidden'); setTimeout(() => mainApp.classList.remove('opacity-0'), 100); }, 500);
+            } else {
+                errorMsg.innerText = "Chave inválida ou não reconhecida!";
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function unlockAppWithAdmin() {
+            const user = document.getElementById('adminUserInput').value.trim();
+            const pass = document.getElementById('adminPassInput').value.trim();
+            const inputUserHash = CryptoJS.SHA256(user).toString();
+            const inputPassHash = CryptoJS.SHA256(pass).toString();
+
+            if (inputUserHash === HASH_EMAIL && inputPassHash === HASH_PASS) {
+                if(overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => { if(overlay) overlay.classList.add('hidden'); mainApp.classList.remove('hidden'); setTimeout(() => mainApp.classList.remove('opacity-0'), 100); }, 500);
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function handleCategoryChange(type) {
+            const catSelect = document.getElementById(type + 'CategorySelect');
+            const weaponContainer = document.getElementById(type + 'WeaponFilterContainer');
+            
+            if (catSelect.value === 'weapon') {
+                weaponContainer.classList.remove('hidden');
+            } else {
+                weaponContainer.classList.add('hidden');
+                document.getElementById(type + 'WeaponTypeSelect').value = 'all';
+            }
+            
+            if(type === 'bm') filterBmTable();
+            if(type === 'sim') renderSimulatorSelection();
+        }
+
+        function changeTab(tabName) {
+            document.getElementById('content-craft').classList.add('hidden');
+            document.getElementById('content-blackmarket').classList.add('hidden');
+            document.getElementById('content-calculator').classList.add('hidden');
+            document.getElementById('content-simulator').classList.add('hidden');
+            
+            const baseClass = "flex-1 py-3 px-5 rounded-xl text-slate-400 font-semibold hover:bg-slate-800/50 hover:text-white transition-all flex items-center justify-center gap-2 whitespace-nowrap";
+            document.getElementById('tab-craft').className = baseClass;
+            document.getElementById('tab-blackmarket').className = baseClass;
+            document.getElementById('tab-calculator').className = baseClass;
+            document.getElementById('tab-simulator').className = baseClass;
+            
+            if (tabName === 'craft') {
+                document.getElementById('content-craft').classList.remove('hidden');
+                document.getElementById('tab-craft').className = "flex-1 py-3 px-5 rounded-xl text-white font-bold bg-gradient-to-r from-yellow-600 to-orange-600 shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap";
+            } else if (tabName === 'blackmarket') {
+                document.getElementById('content-blackmarket').classList.remove('hidden');
+                document.getElementById('tab-blackmarket').className = "flex-1 py-3 px-5 rounded-xl text-white font-bold bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg shadow-purple-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap";
+            } else if (tabName === 'calculator') {
+                document.getElementById('content-calculator').classList.remove('hidden');
+                document.getElementById('tab-calculator').className = "flex-1 py-3 px-5 rounded-xl text-white font-bold bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap";
+            } else {
+                document.getElementById('content-simulator').classList.remove('hidden');
+                document.getElementById('tab-simulator').className = "flex-1 py-3 px-5 rounded-xl text-white font-bold bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap";
+            }
+        }
+
+        function formatTimeAgo(dateString) {
+            if (!dateString || dateString.startsWith("0001-01-01")) return { text: '', color: '' };
+            const diffMins = Math.floor((new Date() - new Date(dateString + "Z")) / 60000);
+            if (diffMins < 0) return { text: 'agora', color: 'text-emerald-400' };
+            if (diffMins < 60) return { text: `${diffMins}m atrás`, color: 'text-emerald-400' };
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return { text: `${diffHours}h atrás`, color: 'text-yellow-500' };
+            return { text: `${Math.floor(diffHours / 24)}d atrás`, color: 'text-red-400' };
+        }
+
+        function formatPriceCell(preco, dataAtualizacao, isManual = false) {
+            if(!preco || preco === 0) return '<div class="text-slate-600 font-bold text-center text-lg">-</div><div class="text-[10px] text-slate-500 mt-1 text-center font-medium opacity-0 group-hover:opacity-100 transition-opacity">✏️ Editar</div>';
+            const td = formatTimeAgo(dataAtualizacao);
+            const subtext = isManual ? `<div class="text-[10px] font-bold text-yellow-500 mt-1 tracking-wide">Preço Manual</div>` : `<div class="text-[10px] font-semibold ${td.color} mt-1 tracking-wide">${td.text}</div>`;
+            return `<div class="flex flex-col text-center"><div class="font-bold text-white text-base tracking-tight">${preco.toLocaleString('pt-BR')} <span class="text-slate-500 text-[10px]">🥈</span></div>${subtext}</div>`;
+        }
+
+        function formatCurrencyInput(input) {
+            let value = input.value.replace(/\D/g, '');
+            input.value = value ? parseInt(value, 10).toLocaleString('pt-BR') : '';
+        }
+
+        function openEditModal(itemId, city, nomeMat) {
+            document.getElementById('editPriceModal').classList.remove('hidden');
+            document.getElementById('editPriceModal').classList.add('flex');
+            document.getElementById('editPriceDesc').innerText = `Valor de compra para: ${nomeMat} em ${city}`;
+            document.getElementById('editPriceItemId').value = itemId;
+            document.getElementById('editPriceCity').value = city;
+            document.getElementById('editPriceInput').value = manualPricesOverrides[itemId]?.[city] || '';
+            document.getElementById('editPriceInput').focus();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editPriceModal').classList.add('hidden');
+            document.getElementById('editPriceModal').classList.remove('flex');
+        }
+
+        function saveEditModal() {
+            const itemId = document.getElementById('editPriceItemId').value;
+            const city = document.getElementById('editPriceCity').value;
+            const valStr = document.getElementById('editPriceInput').value.replace(/\D/g, '');
+            
+            if(!manualPricesOverrides[itemId]) manualPricesOverrides[itemId] = {};
+            if(valStr) { manualPricesOverrides[itemId][city] = parseInt(valStr); } 
+            else { delete manualPricesOverrides[itemId][city]; }
+            
+            closeEditModal();
+            if(lastCraftApiData) renderCraftTable(lastCraftApiData.md, lastCraftApiData.idsBrutos, lastCraftApiData.idsRefinados, lastCraftApiData.idsTokens, lastCraftApiData.idsOrnamentos, lastCraftApiData.idsArtefatos, lastCraftApiData.idsBaseItems);
+            
+            // Recarrega as abas ativas para aplicar o preço manual
+            if (!document.getElementById('content-blackmarket').classList.contains('hidden')) filterBmTable();
+            if (!document.getElementById('content-calculator').classList.contains('hidden')) {
+                const bgStr = document.getElementById('calcBudget').value.replace(/\./g, '');
+                if (bgStr && !isNaN(bgStr) && parseInt(bgStr) > 0) renderCalculatorTable(parseInt(bgStr));
+            }
+            if (!document.getElementById('content-simulator').classList.contains('hidden') && currentSimulatorRecipe) {
+                openSimulatorEditor(currentSimulatorRecipe.id);
+            }
+        }
+
+        async function checkApiStatus() {
+            if(!serverSelect) return;
+            try {
+                const timestamp = Date.now();
+                const res = await fetch(`https://${serverSelect.value}.albion-online-data.com/api/v2/stats/prices/T1_WOOD.json?t=${timestamp}`);
+                if(res.ok) {
+                    apiStatusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]";
+                    apiStatusText.textContent = "API Online";
+                    apiStatusText.className = "text-xs font-bold text-emerald-400 uppercase tracking-widest";
+                } else throw new Error();
+            } catch {
+                apiStatusDot.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]";
+                apiStatusText.textContent = "API Offline";
+                apiStatusText.className = "text-xs font-bold text-red-400 uppercase tracking-widest";
+            }
+        }
+        if(serverSelect) serverSelect.addEventListener('change', checkApiStatus);
+
+        function calculateMaterialCost(receita, precoMats, tier, enchant, craftMethod = 'raw') {
+            let custoTotal = 0; let detalheMatsHtml = ''; let matsValidos = true;
+            let matEnchant = enchant ? `_LEVEL${enchant.replace('@', '')}@${enchant.replace('@', '')}` : "";
+            let gearEnchant = enchant; // NOVO: Encantamento limpo para os equipamentos base
+
+            let customMats = { ...receita.mats };
+            if (craftMethod === 'flat') {
+                let flatBase = null;
+                if (receita.cat === 'capes' && receita.id !== 'CAPE') flatBase = 'CAPE';
+                else if (receita.id.endsWith('_ROYAL')) flatBase = receita.id.replace('_ROYAL', '_SET1');
+
+                if (flatBase) {
+                    delete customMats["CLOTH"];
+                    delete customMats["LEATHER"];
+                    delete customMats["METALBAR"];
+                    delete customMats["PLANKS"];
+                    customMats[flatBase] = 1;
+                }
+            }
+
+            Object.entries(customMats).forEach(([matBase, qtdOriginal]) => {
+                let matId = matBase; let qtdReal = qtdOriginal;
+                if (matBase === "QUESTITEM_TOKEN_AVALON") { qtdReal = CAPE_TOKEN_REQUIREMENTS[tier]?.energy || 15; matId = "QUESTITEM_TOKEN_AVALON"; }
+                else if (matBase.startsWith("T1_FACTION")) { qtdReal = CAPE_TOKEN_REQUIREMENTS[tier]?.hearts || 1; }
+                else if (matBase === "QUESTITEM_TOKEN_ROYAL") {
+                    qtdReal = qtdOriginal === "sigil_chest" ? (tier==="T4"?4:tier==="T5"?8:16) : (tier==="T4"?2:tier==="T5"?4:8);
+                    matId = `QUESTITEM_TOKEN_ROYAL_${tier}`;
+                } 
+                else if (matBase.startsWith("CAPEITEM") && matBase.endsWith("_BP")) matId = `${tier}_${matBase}`;
+                else if (matBase.startsWith("ARTEFACT_")) { matId = `${tier}_${matBase}`; }
+                else if (RECEITAS_BM.some(r => r.id === matBase)) { matId = `${tier}_${matBase}${gearEnchant}`; } // AQUI: Usa o encantamento direto (ex: T4_CAPE@1)
+                else matId = `${tier}_${matBase}${matEnchant}`; // Usa o encantamento com LEVEL (ex: T4_CLOTH_LEVEL1@1)
+
+                const matInfo = precoMats[matId];
+                let nomeMat = NOMES_MATERIAIS[matBase] || matBase;
+                if (matBase.startsWith("ARTEFACT_")) nomeMat = "Artefato (" + receita.nome + ")";
+                else {
+                    const bRec = RECEITAS_BM.find(r => r.id === matBase);
+                    if(bRec) nomeMat = bRec.nome;
+                }
+                
+                const a2dLinkMat = `https://albiononline2d.com/pt/item/id/${matId}`;
+                const matIcon = `https://render.albiononline.com/v1/item/${matId}.png?size=32`;
+                
+                if (matInfo && matInfo.preco > 0) {
+                    custoTotal += matInfo.preco * qtdReal;
+                    detalheMatsHtml += `<div class="flex items-center gap-3 mb-2 bg-[#0B0F19] p-2.5 rounded-xl border border-slate-800">
+                            <a href="${a2dLinkMat}" target="_blank" class="flex-shrink-0 group bg-slate-900 rounded p-1"><img src="${matIcon}" class="w-6 h-6 object-contain group-hover:scale-110 transition-transform"></a>
+                            <span class="text-xs text-slate-300 font-medium"><span class="text-yellow-500 font-bold">${qtdReal}x</span> ${nomeMat} <br/><span class="text-[10px] text-slate-500">Comprar em</span> <span class="font-black text-[10px] ${getCityColor(matInfo.city)}">${matInfo.city}</span></span>
+                            <span class="text-sm font-bold text-white ml-auto">${(matInfo.preco * qtdReal).toLocaleString('pt-BR')} <span class="text-slate-500 text-[10px]">🥈</span></span>
+                        </div>`;
+                } else {
+                    matsValidos = false;
+                    detalheMatsHtml += `<div class="text-[11px] text-red-400 border border-red-500/30 bg-red-500/10 p-2 rounded-xl mb-2 font-bold flex items-center justify-between">
+                        <span>⚠️ Sem preço / ${nomeMat}</span>
+                        <a href="${a2dLinkMat}" target="_blank" class="bg-red-500/20 px-2.5 py-1 rounded-lg hover:bg-red-500/40 transition-colors text-white">Checar 2D</a>
+                    </div>`;
+                }
+            });
+            return { custoTotal, detalheMatsHtml, matsValidos };
+        }
+
+        async function fetchMarketDataGeneric(tier, enchant, quality, server, callbackObj) {
+            const itensIds = RECEITAS_BM.map(r => `${tier}_${r.id}${enchant}`);
+            let mEnc = enchant ? `_LEVEL${enchant.replace('@', '')}@${enchant.replace('@', '')}` : "";
+            let gEnc = enchant; // NOVO: Encantamento limpo
+            const matsSet = new Set(['QUESTITEM_TOKEN_AVALON', `QUESTITEM_TOKEN_ROYAL_${tier}`]);
+            
+            // Força a API a baixar o preço das peças bases que podem ser usadas no "Método Item Pronto"
+            const itensBaseFlat = ['CAPE', 'HEAD_CLOTH_SET1', 'ARMOR_CLOTH_SET1', 'SHOES_CLOTH_SET1', 'HEAD_LEATHER_SET1', 'ARMOR_LEATHER_SET1', 'SHOES_LEATHER_SET1', 'HEAD_PLATE_SET1', 'ARMOR_PLATE_SET1', 'SHOES_PLATE_SET1'];
+            itensBaseFlat.forEach(baseId => matsSet.add(`${tier}_${baseId}${gEnc}`));
+
+            RECEITAS_BM.forEach(r => Object.keys(r.mats).forEach(m => {
+                if (m.startsWith("CAPEITEM") || m.startsWith("ARTEFACT_")) { 
+                    matsSet.add(`${tier}_${m}`); 
+                } else if (m.startsWith("T1_FACTION")) { 
+                    matsSet.add(m); 
+                } else if (RECEITAS_BM.some(rec => rec.id === m)) { 
+                    matsSet.add(`${tier}_${m}${gEnc}`); // CORREÇÃO: Se for uma capa/armadura, usa gEnc (ex: T4_CAPE)
+                } else if (m !== "QUESTITEM_TOKEN_ROYAL" && m !== "QUESTITEM_TOKEN_AVALON") { 
+                    matsSet.add(`${tier}_${m}${mEnc}`); // Se for material, usa mEnc (ex: T4_CLOTH_LEVEL1@1)
+                }
+            }));
+
+            const timestamp = Date.now();
+            const [resBM, resMats] = await Promise.all([
+                fetch(`https://${server}.albion-online-data.com/api/v2/stats/prices/${itensIds.join(',')}.json?locations=Black%20Market&qualities=${quality}&t=${timestamp}`),
+                fetch(`https://${server}.albion-online-data.com/api/v2/stats/prices/${Array.from(matsSet).join(',')}.json?locations=${CIDADES.join(',')}&qualities=1&t=${timestamp}`)
+            ]);
+            if (!resBM.ok || !resMats.ok) throw new Error("Falha na API.");
+            Object.assign(callbackObj, { dataBM: await resBM.json(), dataMats: await resMats.json(), tier, enchant, quality });
+        }
+
+        async function fetchBlackMarketData() {
+            const tier = document.getElementById('bmTierSelect').value, enchant = document.getElementById('bmEnchantSelect').value, quality = document.getElementById('bmQualitySelect').value;
+            const bmTableBody = document.getElementById('bmTableBody');
+            bmTableBody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-purple-400 font-medium"><div class="spinner border-l-purple-500 mx-auto mb-4"></div>Buscando dados no Mercado Negro...</td></tr>`;
+            try {
+                await fetchMarketDataGeneric(tier, enchant, quality, serverSelect.value, lastBmApiData);
+                filterBmTable();
+            } catch (e) { bmTableBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500 font-bold">Erro: ${e.message}</td></tr>`; }
+        }
+
+        function filterBmTable() {
+            if (!lastBmApiData.dataBM.length) return;
+            const { dataBM, dataMats, tier, enchant, quality } = lastBmApiData;
+            const catFilter = document.getElementById('bmCategorySelect').value;
+            const weaponFilter = document.getElementById('bmWeaponTypeSelect').value;
+            
+            // Usa a nova função blindada!
+            const precoMats = buildPrecoMats(dataMats); 
+            
+            const precosBM = {}; dataBM.forEach(d => { if (d.buy_price_max > 0) precosBM[d.item_id] = { preco: d.buy_price_max, date: d.buy_price_max_date }; });
+
+            let html = '';
+            
+            let filteredList = RECEITAS_BM;
+            if (catFilter !== 'all') {
+                filteredList = filteredList.filter(r => r.cat === catFilter);
+                if (catFilter === 'weapon' && weaponFilter !== 'all') {
+                    filteredList = filteredList.filter(r => r.subcat === weaponFilter);
+                }
+            }
+
+            const craftMethod = document.getElementById('bmCraftMethod').value;
+
+            filteredList.forEach(r => {
+                const itemId = `${tier}_${r.id}${enchant}`;
+                const cm = calculateMaterialCost(r, precoMats, tier, enchant, craftMethod);
+                const bmInfo = precosBM[itemId];
+                let bpH = '<div class="text-slate-600 font-bold">-</div>', lH = '<div class="text-slate-600 font-bold">-</div>';
+                
+                if (bmInfo && cm.matsValidos && cm.custoTotal > 0) {
+                    const lq = bmInfo.preco * 0.96; const lc = lq - cm.custoTotal; const mg = (lc / cm.custoTotal) * 100;
+                    const td = formatTimeAgo(bmInfo.date);
+                    bpH = `<div class="font-black text-purple-400 text-lg tracking-tight">${bmInfo.preco.toLocaleString('pt-BR')} 🥈</div><div class="text-[10px] text-slate-500 mb-1 font-medium">Líquido: ~${lq.toLocaleString('pt-BR',{maximumFractionDigits:0})}</div><div class="text-[10px] font-bold ${td.color}">${td.text}</div>`;
+                    const isL = lc > 0;
+                    lH = `<div class="flex flex-col items-center p-4 rounded-2xl ${isL?(mg>15?'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]':'bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]'):'bg-red-500/10 border-red-500/30'} border"><div class="font-black ${isL?(mg>15?'text-emerald-400':'text-yellow-500'):'text-red-400'} text-xl tracking-tight">${lc.toLocaleString('pt-BR',{maximumFractionDigits:0})} 🥈</div><div class="px-2 mt-1 rounded text-[11px] font-bold ${isL?(mg>15?'text-emerald-500':'text-yellow-600'):'text-red-500'}">${mg.toFixed(1)}% Margem</div></div>`;
+                } else if (!cm.matsValidos) {
+                     lH = `<div class="text-xs text-red-400 font-bold text-center bg-red-500/10 p-2 rounded-xl border border-red-500/20">Falta preço<br>de materiais</div>`;
+                }
+
+                html += `<tr class="hover:bg-slate-800/40 border-b border-slate-700/50 transition-colors"><td class="p-5 align-middle cursor-pointer group" onclick="jumpToSimulator('bm', '${r.id}')" title="Simular Craft"><div class="flex gap-4 items-center"><div class="bg-[#0B0F19] rounded-xl border border-slate-700 p-1 shadow-inner group-hover:border-emerald-500/50 transition-colors"><img src="https://render.albiononline.com/v1/item/${itemId}.png?size=64" class="w-12 h-12 object-contain group-hover:scale-110 transition-transform"></div><div class="font-bold text-white group-hover:text-emerald-400 transition-colors flex items-center gap-2">${r.nome} <svg class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></div></div></td><td class="p-5 border-x border-slate-700/50 min-w-[250px] bg-slate-900/20">${cm.detalheMatsHtml}<div class="text-xs text-slate-400 mt-3 font-medium">Custo Base: <span class="font-bold text-base ${cm.matsValidos ? 'text-white' : 'text-red-400'}">${cm.custoTotal.toLocaleString('pt-BR')} 🥈</span></div></td><td class="p-5 text-center bg-[#0B0F19]/30">${bpH}</td><td class="p-5">${lH}</td></tr>`;
+            });
+            document.getElementById('bmTableBody').innerHTML = html || `<tr><td colspan="4" class="p-12 text-center text-slate-500 font-medium">Nenhum item encontrado.</td></tr>`;
+        }
+
+        async function fetchCalculatorData() {
+            const tier = document.getElementById('calcTierSelect').value, enchant = document.getElementById('calcEnchantSelect').value, quality = document.getElementById('calcQualitySelect').value;
+            const bgStr = document.getElementById('calcBudget').value.replace(/\./g, '');
+            if (!bgStr || isNaN(bgStr) || parseInt(bgStr) <= 0) return alert("Orçamento inválido.");
+            
+            document.getElementById('calcTableBody').innerHTML = `<tr><td colspan="3" class="p-12 text-center text-blue-400 font-medium"><div class="spinner border-l-blue-500 mx-auto mb-4"></div>Analisando os melhores investimentos...</td></tr>`;
+            try {
+                await fetchMarketDataGeneric(tier, enchant, quality, serverSelect.value, lastCalcApiData);
+                renderCalculatorTable(parseInt(bgStr));
+            } catch (e) { document.getElementById('calcTableBody').innerHTML = `<tr><td colspan="3" class="p-8 text-center text-red-500 font-bold">Erro: ${e.message}</td></tr>`; }
+        }
+
+        function renderCalculatorTable(budget) {
+            const { dataBM, dataMats, tier, enchant, quality } = lastCalcApiData;
+            const rrrInput = parseFloat(document.getElementById('calcRRR').value) || 0;
+            const rrrMult = 1 - (rrrInput / 100);
+            const craftMethod = document.getElementById('calcCraftMethod').value;
+
+            // Usa a nova função blindada!
+            const precoMats = buildPrecoMats(dataMats);
+            
+            const precosBM = {}; dataBM.forEach(d => { if (d.buy_price_max > 0) precosBM[d.item_id] = { preco: d.buy_price_max, date: d.buy_price_max_date }; });
+
+            let resultados = [];
+            RECEITAS_BM.forEach(r => {
+                const itemId = `${tier}_${r.id}${enchant}`;
+                const cm = calculateMaterialCost(r, precoMats, tier, enchant, craftMethod);
+                
+                if (precosBM[itemId] && cm.matsValidos && cm.custoTotal > 0) {
+                    const custoComRrr = cm.custoTotal * rrrMult;
+                    const precoLq = precosBM[itemId].preco * 0.96;
+                    const qtd = Math.floor(budget / custoComRrr);
+                    if (qtd > 0) resultados.push({ r, itemId, cU: custoComRrr, cBase: cm.custoTotal, pBm: precosBM[itemId].preco, mg: ((precoLq - custoComRrr) / custoComRrr) * 100, qtd, lT: (qtd * precoLq) - (qtd * custoComRrr), gT: qtd * custoComRrr, dt: precosBM[itemId].date });
+                }
+            });
+
+            resultados.sort((a, b) => b.lT - a.lT);
+            let html = '';
+            resultados.forEach((o, i) => {
+                const isL = o.lT > 0; const td = formatTimeAgo(o.dt);
+                const bgC = isL ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30';
+                const txC = isL ? 'text-emerald-400' : 'text-red-400';
+                
+                let bdg = '';
+                if(i===0) bdg = `<div class="absolute -top-3 -left-3 bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900 font-black w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-[0_0_15px_rgba(250,204,21,0.5)] z-20 border-2 border-[#0B0F19]">1</div>`;
+                else if(i===1) bdg = `<div class="absolute -top-3 -left-3 bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800 font-black w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg z-20 border-2 border-[#0B0F19]">2</div>`;
+                else if(i===2) bdg = `<div class="absolute -top-3 -left-3 bg-gradient-to-br from-amber-600 to-orange-700 text-white font-black w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg z-20 border-2 border-[#0B0F19]">3</div>`;
+                
+                html += `<tr class="hover:bg-slate-800/40 border-b border-slate-700/50 transition-colors">
+                    <td class="p-5 relative cursor-pointer group" onclick="jumpToSimulator('calc', '${o.r.id}')" title="Simular Craft"><div class="flex gap-4 items-center relative">${bdg}<div class="bg-[#0B0F19] p-1.5 rounded-2xl border border-slate-700 shadow-inner group-hover:border-emerald-500/50 transition-colors"><img src="https://render.albiononline.com/v1/item/${o.itemId}.png?size=64" class="w-14 h-14 object-contain group-hover:scale-110 transition-transform"></div><div><div class="font-bold text-white text-base group-hover:text-emerald-400 transition-colors flex items-center gap-2">${o.r.nome} <svg class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></div><div class="text-[10px] bg-blue-900/40 text-blue-300 px-2 py-1 rounded-md border border-blue-500/50 w-max mt-1.5 font-bold tracking-wide">${tier}${enchant} (Q${quality})</div></div></div></td>
+                    <td class="p-5 border-x border-slate-700/50 bg-slate-900/20"><div class="flex flex-col gap-1.5 text-xs font-medium"><div class="flex justify-between text-slate-500 line-through"><span>Custo Base (1x):</span> <span>${o.cBase.toLocaleString('pt-BR')} 🥈</span></div><div class="flex justify-between"><span class="text-blue-400 font-bold">Custo (c/ RRR):</span> <span class="font-bold text-blue-400">${o.cU.toLocaleString('pt-BR',{maximumFractionDigits:0})} 🥈</span></div><div class="flex justify-between mt-2 pt-2 border-t border-slate-700/50"><span class="text-slate-400">Venda no BM (1x):</span> <span class="font-black text-purple-400 text-sm tracking-tight">${o.pBm.toLocaleString('pt-BR')} 🥈</span></div><div class="text-right text-[10px] font-bold ${td.color} mt-1">${td.text} no BM</div></div></td>
+                    <td class="p-5 bg-blue-900/5 min-w-[250px]"><div class="flex justify-between items-center bg-[#0B0F19] p-3 rounded-xl border border-slate-800 mb-3"><span class="text-xs text-slate-400 font-bold">Produção Possível:</span><span class="text-xl font-black text-blue-400 tracking-tight">${o.qtd.toLocaleString('pt-BR')} <span class="text-xs font-medium text-slate-500">itens</span></span></div><div class="p-4 rounded-2xl border ${bgC} flex flex-col items-center shadow-lg"><span class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Lucro Líquido Final</span><span class="text-2xl font-black tracking-tight ${txC}">${isL?'+':''}${o.lT.toLocaleString('pt-BR',{maximumFractionDigits:0})} <span class="text-sm opacity-70">🥈</span></span></div></td>
+                </tr>`;
+            });
+            document.getElementById('calcTableBody').innerHTML = html || `<tr><td colspan="3" class="p-12 text-center text-slate-500 font-medium">Nenhum investimento encontrado com esse orçamento e filtros.</td></tr>`;
+        }
+
+        function jumpToSimulator(source, recipeId) {
+            const sourceData = source === 'calc' ? lastCalcApiData : lastBmApiData;
+            
+            if (!sourceData || !sourceData.dataBM || sourceData.dataBM.length === 0) return;
+
+            // Transfere os dados mais recentes da calculadora/mercado negro para o simulador
+            lastSimApiData = { ...sourceData };
+
+            // Atualiza a interface visual (Selects) para mostrar as opções exatas da onde você veio
+            document.getElementById('simTierSelect').value = sourceData.tier;
+            document.getElementById('simEnchantSelect').value = sourceData.enchant;
+            document.getElementById('simQualitySelect').value = sourceData.quality;
+
+            // Arruma as categorias para não esconder o item por engano
+            const recipe = RECEITAS_BM.find(r => r.id === recipeId);
+            if (recipe) {
+                document.getElementById('simCategorySelect').value = recipe.cat;
+                handleCategoryChange('sim'); 
+                if (recipe.cat === 'weapon' && recipe.subcat) {
+                    document.getElementById('simWeaponTypeSelect').value = recipe.subcat;
+                }
+            }
+
+            // Troca de aba magicamente, abre o editor de craft e rola pro topo!
+            changeTab('simulator');
+            openSimulatorEditor(recipeId);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function fetchSimulatorData() {
+            const tier = document.getElementById('simTierSelect').value, enchant = document.getElementById('simEnchantSelect').value, quality = document.getElementById('simQualitySelect').value;
+            const grid = document.getElementById('sim-items-grid');
+            grid.innerHTML = `<div class="col-span-full text-center p-16 text-emerald-400 font-medium"><div class="spinner border-l-emerald-500 mx-auto mb-4"></div>Carregando Base de Dados...</div>`;
+            try {
+                await fetchMarketDataGeneric(tier, enchant, quality, serverSelect.value, lastSimApiData);
+                renderSimulatorSelection();
+            } catch (e) { grid.innerHTML = `<div class="col-span-full text-center p-8 text-red-500 font-bold">Erro: ${e.message}</div>`; }
+        }
+
+        function renderSimulatorSelection() {
+            if (!lastSimApiData.dataBM.length) return;
+            const cat = document.getElementById('simCategorySelect').value;
+            const weaponFilter = document.getElementById('simWeaponTypeSelect').value;
+            const { tier, enchant, quality } = lastSimApiData;
+            
+            let list = RECEITAS_BM;
+            if (cat !== 'all') {
+                list = list.filter(r => r.cat === cat);
+                if (cat === 'weapon' && weaponFilter !== 'all') {
+                    list = list.filter(r => r.subcat === weaponFilter);
+                }
+            }
+            
+            let html = '';
+            list.forEach((r, i) => {
+                const itemId = `${tier}_${r.id}${enchant}`;
+                html += `<div onclick="openSimulatorEditor('${r.id}')" class="glass-card rounded-2xl p-4 flex flex-col items-center cursor-pointer hover:bg-emerald-900/20 hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all group hover:-translate-y-1"><img src="https://render.albiononline.com/v1/item/${itemId}.png?size=64" class="w-16 h-16 bg-[#0B0F19] rounded-xl p-1 mb-3 shadow-inner group-hover:scale-110 transition-transform"><span class="text-sm font-bold text-white text-center leading-tight group-hover:text-emerald-400 transition-colors">${r.nome}</span><span class="text-[10px] font-bold text-slate-500 mt-1.5 px-2 py-0.5 bg-slate-900 rounded-md border border-slate-800">${tier}${enchant}</span></div>`;
+            });
+            document.getElementById('sim-items-grid').innerHTML = html || `<div class="col-span-full text-center p-12 text-slate-500 font-medium">Nenhum item na categoria.</div>`;
+        }
+
+        function openSimulatorEditor(recipeIdStr) {
+            const list = RECEITAS_BM;
+            const r = list.find(x => x.id === recipeIdStr);
+            if(!r) return;
+            
+            const { tier, enchant, quality, dataMats, dataBM } = lastSimApiData;
+            const itemId = `${tier}_${r.id}${enchant}`;
+            let mEnc = enchant ? `_LEVEL${enchant.replace('@', '')}@${enchant.replace('@', '')}` : "";
+
+            document.getElementById('sim-selection-screen').classList.add('hidden');
+            document.getElementById('sim-editor-screen').classList.remove('hidden');
+            document.getElementById('sim-editor-screen').classList.add('flex');
+
+            document.getElementById('sim-item-icon').src = `https://render.albiononline.com/v1/item/${itemId}.png?size=128`;
+            document.getElementById('sim-item-name').innerText = r.nome;
+            document.getElementById('sim-item-tier').innerText = `${tier}${enchant} (Q${quality})`;
+
+            const precoMats = buildPrecoMats(dataMats);
+            const precosBM = {}; dataBM.forEach(d => { if (d.buy_price_max > 0) precosBM[d.item_id] = { preco: d.buy_price_max }; });
+
+            currentSimulatorRecipe = r;
+            currentSimulatorMats = [];
+            const craftMethod = document.getElementById('simCraftMethod').value;
+
+            let customMats = { ...r.mats };
+            if (craftMethod === 'flat') {
+                let flatBase = null;
+                if (r.cat === 'capes' && r.id !== 'CAPE') flatBase = 'CAPE';
+                else if (r.id.endsWith('_ROYAL')) flatBase = r.id.replace('_ROYAL', '_SET1');
+
+                if (flatBase) {
+                    delete customMats["CLOTH"];
+                    delete customMats["LEATHER"];
+                    delete customMats["METALBAR"];
+                    delete customMats["PLANKS"];
+                    customMats[flatBase] = 1;
+                }
+            }
+
+            let matsHtml = '';
+            Object.entries(customMats).forEach(([matBase, qtdOriginal], idx) => {
+                let matId = matBase; let qtdReal = qtdOriginal;
+                if (matBase === "QUESTITEM_TOKEN_AVALON") { qtdReal = CAPE_TOKEN_REQUIREMENTS[tier]?.energy || 15; matId = "QUESTITEM_TOKEN_AVALON"; }
+                else if (matBase.startsWith("T1_FACTION")) { qtdReal = CAPE_TOKEN_REQUIREMENTS[tier]?.hearts || 1; matId = matBase; } // AQUI ESTÁ A CORREÇÃO!
+                else if (matBase === "QUESTITEM_TOKEN_ROYAL") { qtdReal = qtdOriginal === "sigil_chest" ? (tier==="T4"?4:tier==="T5"?8:16) : (tier==="T4"?2:tier==="T5"?4:8); matId = `QUESTITEM_TOKEN_ROYAL_${tier}`; }
+                else if (matBase.startsWith("CAPEITEM") && matBase.endsWith("_BP")) matId = `${tier}_${matBase}`;
+                else if (matBase.startsWith("ARTEFACT_")) { matId = `${tier}_${matBase}`; }
+                else if (RECEITAS_BM.some(rec => rec.id === matBase)) { matId = `${tier}_${matBase}${enchant}`; } 
+                else matId = `${tier}_${matBase}${mEnc}`;
+
+                let nomeMat = NOMES_MATERIAIS[matBase] || matBase;
+                if (matBase.startsWith("ARTEFACT_")) nomeMat = "Artefato (" + r.nome + ")";
+                else {
+                    const bRec = RECEITAS_BM.find(rec => rec.id === matBase);
+                    if(bRec) nomeMat = bRec.nome;
+                }
+
+                const precoIni = precoMats[matId]?.preco || 0;
+                const cityIni = precoMats[matId]?.city || "Desconhecido";
+                currentSimulatorMats.push({ matId, qtdReal, price: precoIni });
+                
+                matsHtml += `<div class="bg-slate-900/50 rounded-2xl p-4 border border-slate-700/50 flex items-center justify-between gap-4"><div class="flex items-center gap-3"><div class="bg-[#0B0F19] p-1 rounded-xl shadow-inner border border-slate-800"><img src="https://render.albiononline.com/v1/item/${matId}.png?size=32" class="w-10 h-10 object-contain"></div><div class="flex flex-col"><span class="text-sm font-bold text-white">${nomeMat}</span><span id="sim-mat-req-${idx}" class="text-[10px] text-yellow-500 font-bold mt-0.5">Exige: ${qtdReal}x</span><span class="text-[9px] text-slate-500 font-medium mt-0.5">Local: <span class="${getCityColor(cityIni)} font-black">${cityIni}</span></span><span id="sim-mat-return-${idx}" class="text-[10px] text-emerald-400 font-bold mt-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 w-max hidden"></span></div></div><div class="relative w-32"><input type="text" id="sim-mat-input-${idx}" value="${precoIni.toLocaleString('pt-BR')}" oninput="formatCurrencyInput(this); updateSimMatPrice(${idx}); recalculateSimulator()" class="w-full bg-[#0B0F19] border border-slate-600 text-white font-black rounded-xl px-3 py-3 text-right focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none shadow-inner transition-all"></div></div>`;
+            });
+
+            document.getElementById('sim-mats-container').innerHTML = matsHtml;
+            const initBmPrice = precosBM[itemId]?.preco || 0;
+            document.getElementById('sim-input-sell').value = initBmPrice.toLocaleString('pt-BR');
+            
+            recalculateSimulator();
+        }
+
+        function updateSimMatPrice(idx) {
+            const val = document.getElementById(`sim-mat-input-${idx}`).value.replace(/\D/g, '');
+            currentSimulatorMats[idx].price = val ? parseInt(val) : 0;
+        }
+
+        function recalculateSimulator() {
+            if (!currentSimulatorRecipe) return;
+            const qtyStr = document.getElementById('sim-input-qty').value;
+            const rrrStr = document.getElementById('sim-input-rrr').value;
+            const sellStr = document.getElementById('sim-input-sell').value.replace(/\D/g, '');
+            
+            const qty = qtyStr ? Math.max(1, parseInt(qtyStr)) : 1;
+            const rrr = rrrStr ? Math.min(100, Math.max(0, parseFloat(rrrStr))) : 0;
+            const sellPrice = sellStr ? parseInt(sellStr) : 0;
+
+            let costBase1x = 0;
+            let costRrr1x = 0;
+            let savedSilver1x = 0;
+            let badgesHtml = '';
+
+            currentSimulatorMats.forEach((mat, idx) => {
+                const cUnico = mat.price * mat.qtdReal;
+                costBase1x += cUnico;
+                const rrrMult = rrr / 100;
+                costRrr1x += cUnico * (1 - rrrMult);
+                savedSilver1x += cUnico * rrrMult;
+                
+                // --- NOVA LÓGICA: ATUALIZA A QUANTIDADE EXIGIDA DE MATERIAL ---
+                const reqLabel = document.getElementById(`sim-mat-req-${idx}`);
+                const totalMatNeeded = mat.qtdReal * qty;
+                if(qty > 1) {
+                    reqLabel.innerHTML = `Comprar: <span class="text-yellow-400 font-black text-xs">${totalMatNeeded}x</span> <span class="text-[9px] opacity-70">(${mat.qtdReal}x/un)</span>`;
+                } else {
+                    reqLabel.innerHTML = `Exige: ${mat.qtdReal}x`;
+                }
+                
+                const returnLabel = document.getElementById(`sim-mat-return-${idx}`);
+                if (rrr > 0) {
+                    const numReturns = (mat.qtdReal * qty) * (rrr / 100);
+                    const formatRet = numReturns % 1 === 0 ? numReturns : numReturns.toFixed(2);
+                    returnLabel.innerHTML = `♻️ Retorna: ~${formatRet}x`;
+                    returnLabel.classList.remove('hidden');
+                    
+                    if(numReturns >= 1) {
+                         badgesHtml += `<div class="bg-blue-900/30 border border-blue-500/40 px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm"><img src="https://render.albiononline.com/v1/item/${mat.matId}.png?size=64" class="w-8 h-8 object-contain drop-shadow-md"><span class="text-sm font-black text-blue-300 tracking-tight">${Math.floor(numReturns)}x</span></div>`;
+                    }
+                } else {
+                    returnLabel.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('sim-res-items-badges').innerHTML = badgesHtml;
+
+            const costBaseTotal = costBase1x * qty;
+            const savedTotal = savedSilver1x * qty;
+            const grossRevTotal = sellPrice * qty;
+            const netRevTotal = grossRevTotal * 0.96;
+            const finalProfit = netRevTotal - (costBaseTotal - savedTotal);
+            const margin = costBaseTotal > 0 ? (finalProfit / (costBaseTotal - savedTotal)) * 100 : 0;
+
+            document.getElementById('sim-res-cost').innerText = `${costBaseTotal.toLocaleString('pt-BR',{maximumFractionDigits:0})} 🥈`;
+            document.getElementById('sim-res-saved').innerText = `+${savedTotal.toLocaleString('pt-BR',{maximumFractionDigits:0})} 🥈`;
+            document.getElementById('sim-res-revenue').innerText = `${netRevTotal.toLocaleString('pt-BR',{maximumFractionDigits:0})} 🥈`;
+            
+            const profitEl = document.getElementById('sim-res-profit');
+            const marginEl = document.getElementById('sim-res-margin');
+            
+            profitEl.innerHTML = `${finalProfit > 0 ? '+' : ''}${finalProfit.toLocaleString('pt-BR',{maximumFractionDigits:0})} <span class="text-2xl opacity-70">🥈</span>`;
+            profitEl.className = `text-4xl font-black tracking-tight ${finalProfit > 0 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`;
+            marginEl.innerText = `${margin.toFixed(1)}% Margem`;
+            marginEl.className = `text-sm font-bold mt-2 ${finalProfit > 0 ? 'text-emerald-500' : 'text-red-500'}`;
+        }
+
+        function closeSimulatorEditor() {
+            document.getElementById('sim-editor-screen').classList.add('hidden');
+            document.getElementById('sim-editor-screen').classList.remove('flex');
+            document.getElementById('sim-selection-screen').classList.remove('hidden');
+        }
+
+        async function fetchCraftData() {
+            const tier = document.getElementById('craftTierSelect').value, enchant = document.getElementById('craftEnchantSelect').value, pt = document.getElementById('priceTypeSelect').value;
+            const idsBrutos = ['WOOD', 'ORE', 'HIDE', 'FIBER', 'ROCK'].map(m => `${tier}_${m}${enchant}`);
+            const idsRefinados = ['PLANKS', 'METALBAR', 'LEATHER', 'CLOTH', 'STONEBLOCK'].map(m => (m==='ROCK'||m==='STONEBLOCK') ? (!enchant ? `${tier}_${m}` : `${tier}_${m}@${enchant.split('@')[1]}`) : `${tier}_${m}${enchant}`);
+            const idsTokens = [`QUESTITEM_TOKEN_ROYAL_${tier}`, 'QUESTITEM_TOKEN_AVALON'];
+            const idsOrnamentos = ['CAPEITEM_FW_LYMHURST_BP', 'CAPEITEM_FW_BRIDGEWATCH_BP', 'CAPEITEM_FW_MARTLOCK_BP', 'CAPEITEM_FW_THETFORD_BP', 'CAPEITEM_FW_FORTSTERLING_BP', 'CAPEITEM_FW_CAERLEON_BP', 'CAPEITEM_FW_BRECILIEN_BP', 'CAPEITEM_AVALON_BP', 'CAPEITEM_HERETIC_BP', 'CAPEITEM_UNDEAD_BP', 'CAPEITEM_KEEPER_BP', 'CAPEITEM_MORGANA_BP', 'CAPEITEM_DEMON_BP'].map(m => `${tier}_${m}`);
+            const idsBaseItems = ['CAPE', 'HEAD_CLOTH_SET1', 'ARMOR_CLOTH_SET1', 'SHOES_CLOTH_SET1', 'HEAD_LEATHER_SET1', 'ARMOR_LEATHER_SET1', 'SHOES_LEATHER_SET1', 'HEAD_PLATE_SET1', 'ARMOR_PLATE_SET1', 'SHOES_PLATE_SET1'].map(m => `${tier}_${m}${enchant === '' ? '' : '@' + enchant.split('@')[1]}`);
+            
+            const idsArtefatos = [];
+            RECEITAS_BM.forEach(r => {
+                Object.keys(r.mats).forEach(m => {
+                    if (m.startsWith("ARTEFACT_")) {
+                        const aid = `${tier}_${m}`;
+                        if (!idsArtefatos.includes(aid)) idsArtefatos.push(aid);
+                    }
+                });
+            });
+
+            const allIds = [...idsBrutos, ...idsRefinados, ...idsTokens, ...idsOrnamentos, ...idsBaseItems, ...idsArtefatos];
+            const bd = document.getElementById('craftTableBody');
+            bd.innerHTML = `<tr><td colspan="7" class="p-12 text-center text-yellow-500 font-medium"><div class="spinner border-l-yellow-500 mx-auto mb-4"></div>Buscando preços atualizados...</td></tr>`;
+
+            try {
+                const timestamp = Date.now();
+                const res = await fetch(`https://${serverSelect.value}.albion-online-data.com/api/v2/stats/prices/${allIds.join(',')}.json?locations=${CIDADES.join(',')}&qualities=1&t=${timestamp}`);
+                const data = await res.json();
+                
+                let md = {};
+                data.forEach(d => { if(d[pt] > 0) { if(!md[d.item_id]) md[d.item_id] = {}; if(!md[d.item_id][d.city] || (pt==='sell_price_min' && d[pt] < md[d.item_id][d.city].preco) || (pt==='buy_price_max' && d[pt] > md[d.item_id][d.city].preco)) md[d.item_id][d.city] = { preco: d[pt], date: d[`${pt}_date`] }; }});
+
+                // ATUALIZA O CACHE GLOBAL COM OS VENCEDORES DA ABA MATERIAIS BÁSICOS
+                globalPrecosVencedores = {}; // Limpa o antigo
+                for (const itemId in md) {
+                    let minP = Infinity;
+                    let cWin = "Desconhecido";
+                    let dWin = "";
+                    
+                    // Segue rigidamente a ordem das colunas visuais
+                    CIDADES.forEach(c => {
+                        if (md[itemId][c] && md[itemId][c].preco > 0) {
+                            if (pt === 'sell_price_min' && md[itemId][c].preco < minP) {
+                                minP = md[itemId][c].preco;
+                                cWin = c;
+                                dWin = md[itemId][c].date;
+                            }
+                        }
+                    });
+                    if (minP !== Infinity) {
+                        globalPrecosVencedores[itemId] = { preco: minP, city: cWin, date: dWin };
+                    }
+                }
+
+                lastCraftApiData = { md, idsBrutos, idsRefinados, idsTokens, idsOrnamentos, idsArtefatos, idsBaseItems };
+                renderCraftTable(md, idsBrutos, idsRefinados, idsTokens, idsOrnamentos, idsArtefatos, idsBaseItems);
+
+            } catch(e) { bd.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-500 font-bold">Erro: ${e.message}</td></tr>`; }
+        }
+
+        function renderCraftTable(md, idsBrutos, idsRefinados, idsTokens, idsOrnamentos, idsArtefatos, idsBaseItems) {
+            const bd = document.getElementById('craftTableBody');
+            const pt = document.getElementById('priceTypeSelect').value;
+            bd.innerHTML = '';
+            
+            const cr = (lista, titulo) => {
+                bd.insertAdjacentHTML('beforeend', `<tr class="bg-[#0B0F19]/80 border-b border-slate-700/50"><td colspan="7" class="p-4 font-black pl-5 border-l-4 border-blue-500 text-blue-400 text-xs tracking-widest uppercase shadow-inner">${titulo}</td></tr>`);
+                lista.forEach(id => {
+                    let bM = id.split('@')[0].replace(/_LEVEL\d/, ''); if(bM.startsWith("QUESTITEM")) bM="QUESTITEM_TOKEN_ROYAL"; else bM = bM.replace(/^T\d_/, '');
+                    let nm = NOMES_MATERIAIS[bM] || bM; nm = nm==="WOOD"?"Madeira":nm==="ORE"?"Minério":nm==="FIBER"?"Fibra":nm==="HIDE"?"Pele":nm==="ROCK"?"Pedra":nm;
+                    
+                    if (bM.startsWith("ARTEFACT_")) {
+                        const rec = RECEITAS_BM.find(r => Object.keys(r.mats).includes(bM));
+                        if (rec) nm = "Artefato (" + rec.nome + ")";
+                    }
+                    
+                    let pd = pt === 'sell_price_min' ? Infinity : -Infinity; 
+                    CIDADES.forEach(c => { 
+                        let p = manualPricesOverrides[id]?.[c] !== undefined ? manualPricesOverrides[id][c] : md[id]?.[c]?.preco;
+                        if(p>0) { if(pt==='sell_price_min' && p<pd) pd=p; if(pt==='buy_price_max' && p>pd) pd=p; }
+                    });
+                    
+                    let html = `<tr class="hover:bg-slate-800/40 border-b border-slate-700/50 transition-colors"><td class="p-4 border-r border-slate-700/30"><div class="flex items-center gap-4"><div class="bg-[#0B0F19] p-1 rounded-xl shadow-inner border border-slate-700"><img src="https://render.albiononline.com/v1/item/${id}.png?size=64" class="w-12 h-12 object-contain"></div><div class="font-bold text-white">${nm}</div></div></td>`;
+                    CIDADES.forEach((c, index) => {
+                        const isManual = manualPricesOverrides[id]?.[c] !== undefined;
+                        const p = isManual ? manualPricesOverrides[id][c] : (md[id]?.[c]?.preco || 0);
+                        const date = md[id]?.[c]?.date;
+                        
+                        let txt = formatPriceCell(p, date, isManual);
+                        
+                        // Cores de Fundo das Colunas (Mais Fortes e Visíveis)
+                        let bgColorClass = '';
+                        if (c === "Caerleon") bgColorClass = 'bg-red-500/25';
+                        else if (c === "Bridgewatch") bgColorClass = 'bg-orange-500/25';
+                        else if (c === "Martlock") bgColorClass = 'bg-blue-500/25';
+                        else if (c === "Thetford") bgColorClass = 'bg-purple-500/25';
+                        else if (c === "Fort Sterling") bgColorClass = 'bg-slate-400/15';
+                        else if (c === "Lymhurst") bgColorClass = 'bg-emerald-500/25';
+                        
+                        let hC = 'border border-transparent hover:bg-black/30 rounded-xl cursor-pointer group transition-all';
+                        
+                        if (p === pd && p > 0) { 
+                            // Vencedor ganha fundo escuro sólido para destacar da coluna colorida
+                            hC = 'bg-[#0B0F19] border border-emerald-500/50 rounded-xl relative cursor-pointer group hover:bg-slate-900 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]'; 
+                            txt = `<div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[9px] font-black tracking-wider px-3 py-0.5 rounded-full shadow-md z-10 whitespace-nowrap">${pt==='sell_price_min'?'MAIS BARATO':'MELHOR VENDA'}</div>` + txt; 
+                        }
+                        
+                        const borderClass = index < CIDADES.length - 1 ? 'border-r border-slate-700/50' : '';
+                        
+                        html += `<td class="p-2 align-middle ${borderClass} ${bgColorClass}"><div onclick="openEditModal('${id}', '${c}', '${nm}')" class="px-2 py-4 h-full flex flex-col justify-center min-h-[75px] ${hC}" title="Clique para editar manualmente">${txt}</div></td>`;
+                    });
+                    bd.insertAdjacentHTML('beforeend', html + '</tr>');
+                });
+            };
+            cr(idsBrutos, "Materiais Brutos"); cr(idsRefinados, "Materiais Refinados"); cr(idsTokens, "Tokens Especiais"); cr(idsOrnamentos, "Ornamentos (Capas)"); cr(idsBaseItems, "Itens Base (Para Upgrade)");
+            if (idsArtefatos && idsArtefatos.length > 0) cr(idsArtefatos, "Artefatos (Armas)");
+        }
+
+        checkApiStatus();
+        if(serverSelect) serverSelect.addEventListener('change', checkApiStatus);
+
+    </script>
 </body>
 </html>
