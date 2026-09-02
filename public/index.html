@@ -137,7 +137,7 @@
     
     let username = "";
     let localStream = null;
-    let taxaDeBitsIdeal = 8000000; 
+    let taxaDeBitsIdeal = 7000000; 
     const peers = {};
 
     const loginModal = document.getElementById('login-modal');
@@ -263,9 +263,9 @@
             if (height <= 360) taxaDeBitsIdeal = 1000000;
             else if (height <= 480) taxaDeBitsIdeal = 2000000;
             else if (height <= 720) taxaDeBitsIdeal = 4000000;
-            else if (height <= 1080) taxaDeBitsIdeal = 8000000;
-            else if (height <= 1440) taxaDeBitsIdeal = 15000000;
-            else taxaDeBitsIdeal = 30000000;
+            else if (height <= 1080) taxaDeBitsIdeal = 7000000;
+            else if (height <= 1440) taxaDeBitsIdeal = 12000000;
+            else taxaDeBitsIdeal = 23000000;
 
             dynamicConstraints = {
               video: { width: { ideal: width, max: width }, height: { ideal: height, max: height }, frameRate: { ideal: fps, max: fps } },
