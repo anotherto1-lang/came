@@ -137,7 +137,7 @@
     
     let username = "";
     let localStream = null;
-    let taxaDeBitsIdeal = 7000000; 
+    let taxaDeBitsIdeal = 7500000; 
     const peers = {};
 
     const loginModal = document.getElementById('login-modal');
@@ -263,7 +263,7 @@
             if (height <= 360) taxaDeBitsIdeal = 1000000;
             else if (height <= 480) taxaDeBitsIdeal = 2000000;
             else if (height <= 720) taxaDeBitsIdeal = 4000000;
-            else if (height <= 1080) taxaDeBitsIdeal = 7000000;
+            else if (height <= 1080) taxaDeBitsIdeal = 7500000;
             else if (height <= 1440) taxaDeBitsIdeal = 12000000;
             else taxaDeBitsIdeal = 23000000;
 
